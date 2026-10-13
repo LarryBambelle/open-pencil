@@ -1,0 +1,1 @@
+- SVG markup that starts with a byte-order mark imports instead of reporting no supported elements.
