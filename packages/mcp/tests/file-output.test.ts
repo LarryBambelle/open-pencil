@@ -5,6 +5,7 @@ import { join } from 'node:path'
 
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import { McpServer } from '@modelcontextprotocol/server'
+import { encode } from 'js-base64'
 
 import { registerTools } from '../src/tool/registration'
 import { SELECTION_SCOPE_FILE_OUTPUT_ERROR } from '../src/tool/scope'
@@ -96,7 +97,7 @@ describe('a path argument on a file-output tool', () => {
     const pdf = '%PDF-1.4\n%%EOF\n'
     const { client } = await connect({
       mimeType: 'application/pdf',
-      base64: Buffer.from(pdf).toString('base64'),
+      base64: encode(pdf),
       byteLength: pdf.length
     })
     const result = await client.callTool({
@@ -108,7 +109,7 @@ describe('a path argument on a file-output tool', () => {
     const text = JSON.stringify(result.content)
     expect(text).toContain('page.pdf')
     expect(text).toContain(`byteLength`)
-    expect(text).not.toContain(Buffer.from(pdf).toString('base64'))
+    expect(text).not.toContain(encode(pdf))
   })
 
   test('export_pdf cannot write outside the root', async () => {
