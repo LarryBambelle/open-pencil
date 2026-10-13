@@ -7,6 +7,7 @@ export {
   exposeInstanceSwap
 } from './create/components'
 export { fetchIconsTool, insertIcon, searchIconsTool } from './create/icons'
+export { placeImage } from './create/place-image'
 export { render } from './create/render'
 export { importSVG } from './create/svg'
 export { createVector } from './create/vector'

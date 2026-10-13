@@ -236,6 +236,7 @@ Settings tools never expose credentials, AI models, MCP connections, storage, or
 | `create_shape` | Create a shape (`FRAME`, `RECTANGLE`, `ELLIPSE`, `TEXT`, `LINE`, `STAR`, `POLYGON`, `SECTION`) |
 | `create_vector` | Create a vector node from a path string |
 | `create_slice` | Create an export slice |
+| `place_image` | Place a raster image (base64 PNG, JPEG, WEBP, GIF) as a rectangle with an image fill sized to the picture |
 | `create_page` | Create a new page |
 | `render` | Render JSX to design nodes — create entire component trees in one call |
 | `create_component` | Convert a frame/group into a component |

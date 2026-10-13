@@ -25,6 +25,7 @@ import {
   getBehaviour,
   importSVG,
   insertIcon,
+  placeImage,
   searchIconsTool,
   setBehaviour
 } from './create'
@@ -145,6 +146,7 @@ export const EXTENDED_TOOLS: ToolDef[] = [
   createVector,
   createSlice,
   importSVG,
+  placeImage,
   // Modify (advanced)
   setEffects,
   setOpacity,
