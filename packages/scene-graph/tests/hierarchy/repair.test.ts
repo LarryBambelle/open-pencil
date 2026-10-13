@@ -31,6 +31,15 @@ describe('repairHierarchy', () => {
     expect(depthFirst(graph)).toEqual(before)
   })
 
+  test('clears a parent on the root', () => {
+    const { graph } = corruptGraph()
+    const root = graph.getNode(graph.rootId)
+    if (!root) throw new Error('missing root')
+    root.parentId = graph.rootId
+    expect(repairHierarchy(graph)).toBe(1)
+    expect(root.parentId).toBeNull()
+  })
+
   test('breaks a child list cycle (a descendant listing its ancestor)', () => {
     const { graph, a, b, c } = corruptGraph()
     c.childIds = [a.id]
