@@ -12,7 +12,7 @@ const SERVER_OWNED_PATH_PREFIXES = ['/oauth/', '/oauth2/']
 
 /**
  * The navigations the service worker leaves to the server: the paths above plus the prefixes in
- * `extraPrefixes`, a comma-separated list such as `/auth/,/sso/` that a deployment behind another
+ * `extraPrefixes`, a comma-separated list such as `/auth/,/sso` that a deployment behind another
  * sign-in proxy sets in `OPENPENCIL_PWA_SERVER_PATHS` when it builds the editor.
  */
 export function pwaNavigateFallbackDenylist(extraPrefixes: string | undefined): RegExp[] {
@@ -25,8 +25,12 @@ export function pwaNavigateFallbackDenylist(extraPrefixes: string | undefined): 
       throw new Error(`OPENPENCIL_PWA_SERVER_PATHS entries must start with "/": ${prefix}`)
     }
   }
-  return [...SERVER_OWNED_PATH_PREFIXES, ...extra].map(
-    (prefix) => new RegExp(`^${escapeRegExp(prefix.endsWith('/') ? prefix : `${prefix}/`)}`)
+  // An entry ending in `/` covers what is under it; any other entry also covers the path itself,
+  // with or without a query, as Workbox matches the pathname plus the search string.
+  return [...SERVER_OWNED_PATH_PREFIXES, ...extra].map((prefix) =>
+    prefix.endsWith('/')
+      ? new RegExp(`^${escapeRegExp(prefix)}`)
+      : new RegExp(`^${escapeRegExp(prefix)}(?:[/?]|$)`)
   )
 }
 

@@ -30,6 +30,14 @@ describe('service worker navigation fallback', () => {
     expect(denied(denylist, '/xauth/login')).toBe(false)
   })
 
+  test('an entry without a trailing slash also covers the path itself', () => {
+    const denylist = pwaNavigateFallbackDenylist('/sso')
+    for (const path of ['/sso', '/sso?next=/file/abc', '/sso/return']) {
+      expect(denied(denylist, path)).toBe(true)
+    }
+    expect(denied(denylist, '/ssox')).toBe(false)
+  })
+
   test('an entry that is not a path is rejected', () => {
     expect(() => pwaNavigateFallbackDenylist('auth/')).toThrow('must start with "/"')
   })
