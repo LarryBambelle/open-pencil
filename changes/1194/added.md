@@ -1,0 +1,1 @@
+- The place_image tool puts a PNG, JPEG, WEBP, or GIF on the canvas as a rectangle sized to the picture.
