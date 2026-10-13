@@ -92,6 +92,34 @@ describe('a path argument on a file-output tool', () => {
     expect(await readFile(join(root, 'out', 'logo.svg'), 'utf8')).toBe('<svg/>')
   })
 
+  test('export_pdf writes the decoded PDF under the root instead of returning it inline', async () => {
+    const pdf = '%PDF-1.4\n%%EOF\n'
+    const { client } = await connect({
+      mimeType: 'application/pdf',
+      base64: Buffer.from(pdf).toString('base64'),
+      byteLength: pdf.length
+    })
+    const result = await client.callTool({
+      name: 'export_pdf',
+      arguments: { path: 'out/page.pdf' }
+    })
+    expect(result.isError).toBeFalsy()
+    expect(await readFile(join(root, 'out', 'page.pdf'), 'utf8')).toBe(pdf)
+    const text = JSON.stringify(result.content)
+    expect(text).toContain('page.pdf')
+    expect(text).toContain(`byteLength`)
+    expect(text).not.toContain(Buffer.from(pdf).toString('base64'))
+  })
+
+  test('export_pdf cannot write outside the root', async () => {
+    const { client } = await connect({ mimeType: 'application/pdf', base64: 'JVBERg==' })
+    const result = await client.callTool({
+      name: 'export_pdf',
+      arguments: { path: '../escape.pdf' }
+    })
+    expect(result.isError).toBe(true)
+  })
+
   test('a file path outside the root is still refused', async () => {
     const { client } = await connect({ svg: '<svg/>' })
     const result = await client.callTool({
