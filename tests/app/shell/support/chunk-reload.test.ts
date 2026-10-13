@@ -24,6 +24,12 @@ describe('claiming a reload for a missing chunk', () => {
     expect(claimChunkReload(storage, 61_001)).toBe(true)
   })
 
+  test('is granted when the recorded reload is ahead of the clock', () => {
+    const storage = memoryStorage({ 'openpencil:chunk-reload-at': '500000' })
+    expect(claimChunkReload(storage, 1_000)).toBe(true)
+    expect(claimChunkReload(storage, 2_000)).toBe(false)
+  })
+
   test('is refused when the page cannot remember it reloaded', () => {
     expect(claimChunkReload(null, 1_000)).toBe(false)
     const failing = {

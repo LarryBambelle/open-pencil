@@ -15,7 +15,8 @@ export function claimChunkReload(storage: ReloadStorage | null, now: number): bo
   try {
     const stored = storage.getItem(RELOAD_KEY)
     const last = stored === null ? Number.NaN : Number(stored)
-    if (Number.isFinite(last) && now - last < RELOAD_WINDOW_MS) return false
+    // A time ahead of `now` means the clock went back; it says nothing about a recent reload.
+    if (Number.isFinite(last) && last <= now && now - last < RELOAD_WINDOW_MS) return false
     storage.setItem(RELOAD_KEY, String(now))
     return true
   } catch {
