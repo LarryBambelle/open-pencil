@@ -11,5 +11,7 @@
   "pencil": "铅笔",
   "text": "文本",
   "hand": "抓手",
-  "comment": "评论"
+  "comment": "评论",
+  "eyedropper": "吸管",
+  "eyedropperSample": "从画布拾取颜色"
 }

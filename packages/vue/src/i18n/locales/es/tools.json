@@ -11,5 +11,7 @@
   "pencil": "Lápiz",
   "text": "Texto",
   "hand": "Mano",
-  "comment": "Comentario"
+  "comment": "Comentario",
+  "eyedropper": "Cuentagotas",
+  "eyedropperSample": "Tomar un color del lienzo"
 }

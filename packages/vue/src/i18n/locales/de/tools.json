@@ -11,5 +11,7 @@
   "pencil": "Bleistift",
   "text": "Text",
   "hand": "Hand",
-  "comment": "Kommentar"
+  "comment": "Kommentar",
+  "eyedropper": "Pipette",
+  "eyedropperSample": "Farbe von der Arbeitsfläche aufnehmen"
 }

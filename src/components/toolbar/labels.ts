@@ -22,7 +22,8 @@ export function useToolLabels() {
     PENCIL: tools.value.pencil,
     TEXT: tools.value.text,
     HAND: tools.value.hand,
-    COMMENT: tools.value.comment
+    COMMENT: tools.value.comment,
+    EYEDROPPER: tools.value.eyedropper
   }))
 }
 

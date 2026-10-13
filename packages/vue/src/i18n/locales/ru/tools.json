@@ -11,5 +11,7 @@
   "pencil": "Карандаш",
   "text": "Текст",
   "hand": "Рука",
-  "comment": "Комментарий"
+  "comment": "Комментарий",
+  "eyedropper": "Пипетка",
+  "eyedropperSample": "Взять цвет с холста"
 }

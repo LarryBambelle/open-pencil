@@ -11,5 +11,7 @@
   "pencil": "鉛筆",
   "text": "テキスト",
   "hand": "手のひらツール",
-  "comment": "コメント"
+  "comment": "コメント",
+  "eyedropper": "スポイト",
+  "eyedropperSample": "キャンバスから色を取得"
 }

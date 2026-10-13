@@ -11,5 +11,7 @@
   "pencil": "Matita",
   "text": "Testo",
   "hand": "Mano",
-  "comment": "Commento"
+  "comment": "Commento",
+  "eyedropper": "Contagocce",
+  "eyedropperSample": "Preleva un colore dalla tela"
 }
