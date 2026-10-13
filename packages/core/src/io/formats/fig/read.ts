@@ -78,14 +78,6 @@ export function parseFigFileViaWorker(
       clearStartTimer()
       options.signal?.removeEventListener('abort', abort)
     }
-    startTimer = setTimeout(() => {
-      cleanupAbort()
-      channel.port1.close()
-      worker.terminate()
-      // Not a ReaderSemanticError, so parseFigFile falls back to the main thread.
-      reject(new Error(`The .fig parser worker did not start within ${startTimeoutMs} ms`))
-    }, startTimeoutMs)
-
     channel.port1.onmessage = (e: MessageEvent<FigSessionResponse>) => {
       if (e.data.type === 'started') {
         clearStartTimer()
@@ -146,6 +138,14 @@ export function parseFigFileViaWorker(
       port: channel.port2
     }
     worker.postMessage(request, [workerBuffer, channel.port2])
+    // Timed from here, so copying a large file above does not count against the worker's start.
+    startTimer = setTimeout(() => {
+      cleanupAbort()
+      channel.port1.close()
+      worker.terminate()
+      // Not a ReaderSemanticError, so parseFigFile falls back to the main thread.
+      reject(new Error(`The .fig parser worker did not start within ${startTimeoutMs} ms`))
+    }, startTimeoutMs)
   })
 }
 
