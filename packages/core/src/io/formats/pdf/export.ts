@@ -1,18 +1,25 @@
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { computeContentBounds } from '#core/io/formats/raster'
-import { renderNodesToSVG } from '#core/io/formats/svg'
+import { renderNodesToSVG, type SVGTextLayout } from '#core/io/formats/svg'
 
+import { embedFonts, type PDFFontLoader, type PDFFontReport } from './fonts'
 import type { PDFPageSpec } from './plan'
 
 export interface PDFExportOptions {
   title?: string
+  /** Embeds the font file of each face the text uses; without it text uses standard PDF fonts. */
+  fonts?: PDFFontLoader
+  /** Line breaks of text nodes as the editor laid them out, so paragraphs stay wrapped. */
+  textLayout?: SVGTextLayout
 }
 
 export interface PDFExportResult {
   data: Uint8Array
   /** The pages written, in order. Pages with nothing visible are skipped. */
   pages: Array<{ label?: string; width: number; height: number }>
+  /** Embedded and fallback faces, when `fonts` was given. */
+  fonts?: PDFFontReport
 }
 
 interface PreparedPage {
@@ -22,8 +29,15 @@ interface PreparedPage {
   height: number
 }
 
-function preparePage(graph: SceneGraph, spec: PDFPageSpec): PreparedPage | null {
-  const svg = renderNodesToSVG(graph, spec.pageId, spec.nodeIds, { xmlDeclaration: false })
+function preparePage(
+  graph: SceneGraph,
+  spec: PDFPageSpec,
+  textLayout: SVGTextLayout | undefined
+): PreparedPage | null {
+  const svg = renderNodesToSVG(graph, spec.pageId, spec.nodeIds, {
+    xmlDeclaration: false,
+    textLayout
+  })
   if (!svg) return null
 
   const bounds = computeContentBounds(graph, spec.nodeIds)
@@ -50,7 +64,7 @@ export async function renderPagesToPDFDetailed(
   options: PDFExportOptions = {}
 ): Promise<PDFExportResult | null> {
   const prepared = specs
-    .map((spec) => preparePage(graph, spec))
+    .map((spec) => preparePage(graph, spec, options.textLayout))
     .filter((page): page is PreparedPage => page !== null)
   if (prepared.length === 0) return null
   const first = prepared[0]
@@ -68,6 +82,14 @@ export async function renderPagesToPDFDetailed(
     doc.setProperties({ title: options.title })
   }
 
+  const fonts = options.fonts
+    ? await embedFonts(
+        doc,
+        prepared.map((page) => page.svgElement),
+        options.fonts
+      )
+    : undefined
+
   for (const [index, page] of prepared.entries()) {
     if (index > 0) doc.addPage([page.width, page.height], orientationOf(page))
     await svg2pdf(page.svgElement, doc, { x: 0, y: 0, width: page.width, height: page.height })
@@ -79,7 +101,8 @@ export async function renderPagesToPDFDetailed(
       label: page.spec.label,
       width: page.width,
       height: page.height
-    }))
+    })),
+    ...(fonts ? { fonts } : {})
   }
 }
 
