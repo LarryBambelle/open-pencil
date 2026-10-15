@@ -9,7 +9,6 @@ export function createDefaultEditorSharedState(): EditorSharedState {
     gradientEdit: null,
     presenceCursors: [],
     documentName: 'Untitled',
-    copiedProperties: null,
     designIssues: null,
     codeFocusNodeId: null,
     rulerTheme: undefined,

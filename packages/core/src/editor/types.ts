@@ -25,7 +25,6 @@ import type {
 import type { InterfaceTheme } from '#core/constants'
 import type { PlayState } from '#core/editor/play/actions'
 import type { SnappingPreferences } from '#core/editor/preferences'
-import type { CopiedProperties } from '#core/editor/properties-clipboard'
 import type { ShaderRasterizer } from '#core/editor/shaders/types'
 import type { RotationPreview, ShapeHandleKind } from '#core/geometry'
 import type { IconProvider } from '#core/icons/provider'
@@ -78,8 +77,6 @@ export interface EditorSharedState {
   gradientEdit?: GradientEdit | null
   presenceCursors: PresenceCursor[]
   documentName: string
-  /** The look copied by Copy properties, waiting for Paste properties. */
-  copiedProperties: CopiedProperties | null
   /** Design check markers and highlight, shared by every canvas pane. */
   designIssues: DesignIssueOverlay | null
   /** The layer of the code element around the cursor in a code editor, shown in every pane. */

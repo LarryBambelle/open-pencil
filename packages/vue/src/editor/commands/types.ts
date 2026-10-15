@@ -42,8 +42,6 @@ export type EditorCommandId =
   | 'selection.outlineStroke'
   | 'selection.moveToPage'
   | 'selection.setOpacity'
-  | 'selection.copyProperties'
-  | 'selection.pasteProperties'
   | 'view.zoom100'
   | 'view.zoomFit'
   | 'view.zoomSelection'

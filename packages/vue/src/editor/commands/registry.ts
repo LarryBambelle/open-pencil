@@ -120,16 +120,6 @@ export const EDITOR_COMMAND_METADATA = {
   'selection.outlineStroke': { contextTestId: 'context-outline-stroke' },
   'selection.moveToPage': {},
   'selection.setOpacity': { shortcut: '1-9, 0' },
-  'selection.copyProperties': {
-    shortcut: 'MOD+ALT+C',
-    keybinding: '$mod+Alt+KeyC',
-    contextTestId: 'context-copy-properties'
-  },
-  'selection.pasteProperties': {
-    shortcut: 'MOD+ALT+V',
-    keybinding: '$mod+Alt+KeyV',
-    contextTestId: 'context-paste-properties'
-  },
   'view.zoom100': { shortcut: 'MOD+0', keybinding: ['$mod+Digit0', 'Shift+Digit0'] },
   'view.zoomFit': { shortcut: 'SHIFT+1', keybinding: ['$mod+Digit1', 'Shift+Digit1'] },
   'view.zoomSelection': { shortcut: 'SHIFT+2', keybinding: ['$mod+Digit2', 'Shift+Digit2'] },

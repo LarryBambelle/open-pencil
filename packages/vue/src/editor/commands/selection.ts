@@ -366,22 +366,6 @@ export function createSelectionCommands({
         const target = getOpacityTarget()
         editor.setOpacity(target.value, target.coalesceKey)
       }
-    },
-    'selection.copyProperties': {
-      id: 'selection.copyProperties',
-      get label() {
-        return t.value.copyProperties
-      },
-      enabled: capabilities.canCopyProperties,
-      run: () => void editor.copySelectedProperties()
-    },
-    'selection.pasteProperties': {
-      id: 'selection.pasteProperties',
-      get label() {
-        return t.value.pasteProperties
-      },
-      enabled: capabilities.canPasteProperties,
-      run: () => void editor.pasteSelectedProperties()
     }
   }
 }

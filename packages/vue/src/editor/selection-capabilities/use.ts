@@ -1,7 +1,6 @@
 import { computed, shallowRef } from 'vue'
 
 import { canMakeBooleanSourceNode, hasVisibleStrokeSourceNode } from '@open-pencil/core/canvas'
-import { copyProperties } from '@open-pencil/core/editor'
 
 import { useEditorEvent } from '#vue/editor/events/use'
 import { useSelectionState } from '#vue/editor/selection-state/use'
@@ -78,13 +77,6 @@ export function useSelectionCapabilities() {
     canCreateSlot: selection.canCreateSlot,
     canMoveToPage: useSceneComputed(() => hasSelection.value && editor.graph.getPages().length > 1),
     canSetOpacity: computed(() => hasSelection.value),
-    canCopyProperties: useSceneComputed(() => {
-      const nodes = editor.getSelectedNodes()
-      return nodes.length === 1 && copyProperties(nodes[0]) !== null
-    }),
-    canPasteProperties: useSceneComputed(
-      () => editor.state.copiedProperties !== null && hasSelection.value
-    ),
     canSelectAll: useSceneComputed(
       () => editor.graph.getChildren(editor.state.currentPageId).length > 0
     ),
