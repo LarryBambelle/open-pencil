@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "Eksportuj zaznaczenie jako SVG",
   "exportSelectionAsPPTX": "Eksportuj zaznaczenie jako PPTX",
   "exportSelectionAsFig": "Eksportuj zaznaczenie jako .fig",
-  "togglePreview": "Podgląd"
+  "togglePreview": "Podgląd",
+  "selectMatching": "Zaznacz pasujące warstwy",
+  "matchType": "Ten sam typ",
+  "matchName": "Ta sama nazwa",
+  "matchFill": "To samo wypełnienie",
+  "matchStroke": "Ta sama obwódka",
+  "matchEffects": "Te same efekty",
+  "matchOpacity": "Ta sama przezroczystość",
+  "matchSize": "Ten sam rozmiar",
+  "matchCornerRadius": "Ten sam promień rogów",
+  "matchComponent": "Ten sam komponent",
+  "matchTextStyle": "Ten sam styl tekstu",
+  "matchFontFamily": "Ta sama czcionka",
+  "matchFontSize": "Ten sam rozmiar czcionki",
+  "matchFontWeight": "Ta sama grubość czcionki",
+  "matchTextColor": "Ten sam kolor tekstu"
 }

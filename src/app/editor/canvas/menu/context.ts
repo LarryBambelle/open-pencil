@@ -2,7 +2,9 @@ import { computed, type Ref } from 'vue'
 
 import { formatShortcut, type Editor, type MenuEntry } from '@open-pencil/vue'
 
+import type { EditorStore } from '@/app/editor/active-store'
 import type { createCanvasMenuActions } from '@/app/editor/canvas/menu/actions'
+import { selectMatchingEntry, type CanvasMatchingLabels } from '@/app/editor/canvas/menu/matching'
 import {
   CANVAS_COPY_AS_ACTIONS,
   CANVAS_COPY_AS_GROUP_TEST_ID,
@@ -83,11 +85,12 @@ function copyPasteAsEntry(
 }
 
 export function useCanvasContextMenu(
+  store: EditorStore,
   baseEntries: Ref<MenuEntry[]>,
   hasSelection: Ref<boolean>,
   editor: Editor,
   actions: CanvasMenuActions,
-  labels: Ref<CanvasCopyLabels>
+  labels: Ref<CanvasCopyLabels & CanvasMatchingLabels>
 ) {
   return computed<MenuEntry[]>(() => {
     const entries = withoutStaticSelectionCommands(baseEntries.value)
@@ -102,6 +105,11 @@ export function useCanvasContextMenu(
         }
       )
     }
+    // Re-read when the selection or the document changes.
+    void store.state.selectedIds
+    void store.state.sceneVersion
+    const matching = selectMatchingEntry(store, labels.value)
+    if (matching) entries.push({ separator: true }, matching)
     return [...entries, { separator: true }, copyPasteAsEntry(editor, actions, labels.value)]
   })
 }

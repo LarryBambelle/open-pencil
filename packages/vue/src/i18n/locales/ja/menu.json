@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "選択範囲を SVG としてエクスポート",
   "exportSelectionAsPPTX": "選択範囲を PPTX としてエクスポート",
   "exportSelectionAsFig": "選択範囲を .fig としてエクスポート",
-  "togglePreview": "プレビュー"
+  "togglePreview": "プレビュー",
+  "selectMatching": "一致するレイヤーを選択",
+  "matchType": "同じタイプ",
+  "matchName": "同じ名前",
+  "matchFill": "同じ塗り",
+  "matchStroke": "同じ線",
+  "matchEffects": "同じエフェクト",
+  "matchOpacity": "同じ不透明度",
+  "matchSize": "同じサイズ",
+  "matchCornerRadius": "同じ角の半径",
+  "matchComponent": "同じコンポーネント",
+  "matchTextStyle": "同じテキストスタイル",
+  "matchFontFamily": "同じフォント",
+  "matchFontSize": "同じフォントサイズ",
+  "matchFontWeight": "同じフォントの太さ",
+  "matchTextColor": "同じテキストの色"
 }

@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "Auswahl als SVG exportieren",
   "exportSelectionAsPPTX": "Auswahl als PPTX exportieren",
   "exportSelectionAsFig": "Auswahl als .fig exportieren",
-  "togglePreview": "Vorschau"
+  "togglePreview": "Vorschau",
+  "selectMatching": "Passende Ebenen auswählen",
+  "matchType": "Gleicher Typ",
+  "matchName": "Gleicher Name",
+  "matchFill": "Gleiche Füllung",
+  "matchStroke": "Gleiche Kontur",
+  "matchEffects": "Gleiche Effekte",
+  "matchOpacity": "Gleiche Deckkraft",
+  "matchSize": "Gleiche Größe",
+  "matchCornerRadius": "Gleicher Eckenradius",
+  "matchComponent": "Gleiche Komponente",
+  "matchTextStyle": "Gleicher Textstil",
+  "matchFontFamily": "Gleiche Schrift",
+  "matchFontSize": "Gleiche Schriftgröße",
+  "matchFontWeight": "Gleiche Schriftstärke",
+  "matchTextColor": "Gleiche Textfarbe"
 }

@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "将所选内容导出为 SVG",
   "exportSelectionAsPPTX": "将所选内容导出为 PPTX",
   "exportSelectionAsFig": "将所选内容导出为 .fig",
-  "togglePreview": "预览"
+  "togglePreview": "预览",
+  "selectMatching": "选择匹配的图层",
+  "matchType": "相同类型",
+  "matchName": "相同名称",
+  "matchFill": "相同填充",
+  "matchStroke": "相同描边",
+  "matchEffects": "相同效果",
+  "matchOpacity": "相同不透明度",
+  "matchSize": "相同尺寸",
+  "matchCornerRadius": "相同圆角半径",
+  "matchComponent": "相同组件",
+  "matchTextStyle": "相同文本样式",
+  "matchFontFamily": "相同字体",
+  "matchFontSize": "相同字号",
+  "matchFontWeight": "相同字重",
+  "matchTextColor": "相同文本颜色"
 }

@@ -11,6 +11,13 @@ export { editedGradient, editedGradientLayout } from './gradient-edit'
 export type { SelectionSpacing } from './alignment'
 export type { MovePlace } from './undo'
 export {
+  availableCriteria,
+  MATCH_CRITERIA,
+  matchingNodeIds,
+  matchSignature,
+  type MatchCriterion
+} from './selection/matching'
+export {
   replaceSelectionColor,
   selectionColors,
   selectionColorsShown,

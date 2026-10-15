@@ -1,5 +1,6 @@
 import { createSelectionContainerActions } from './selection/container'
 import { createSelectionHitTestActions } from './selection/hit-test'
+import { availableCriteria, matchingNodeIds, type MatchCriterion } from './selection/matching'
 import { createSelectionNavigationActions } from './selection/navigation'
 import { createSelectionOverlayActions } from './selection/overlays'
 import { createSelectionReadActions } from './selection/read'
@@ -58,6 +59,29 @@ export function createSelectionActions(ctx: EditorContext) {
     )
   }
 
+  function primarySelectedNode() {
+    const first = ctx.state.selectedIds.values().next()
+    return first.done ? undefined : ctx.graph.getNode(first.value)
+  }
+
+  /** What the first selected layer can be matched on, for a "Select matching layers" menu. */
+  function matchingCriteria(): MatchCriterion[] {
+    const node = primarySelectedNode()
+    return node ? availableCriteria(node) : []
+  }
+
+  /**
+   * Selects every visible, unlocked layer on the page that shares `criterion` with the first
+   * selected layer, and returns how many it selected. The selection is kept when nothing matches.
+   */
+  function selectMatching(criterion: MatchCriterion): number {
+    const node = primarySelectedNode()
+    if (!node) return 0
+    const ids = matchingNodeIds(ctx.graph, node.id, criterion, ctx.state.currentPageId)
+    if (ids.length > 0) select(ids)
+    return ids.length
+  }
+
   const containerActions = createSelectionContainerActions(ctx)
   const hitTestActions = createSelectionHitTestActions(ctx, select, clearSelection)
   const navigationActions = createSelectionNavigationActions(ctx, select)
@@ -70,6 +94,8 @@ export function createSelectionActions(ctx: EditorContext) {
     selectAll,
     selectInverse,
     ...navigationActions,
+    matchingCriteria,
+    selectMatching,
     ...overlayActions,
     ...containerActions,
     ...readActions,

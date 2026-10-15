@@ -40,7 +40,14 @@ const { menu: t } = useI18n()
 
 const canvasMenuActions = createCanvasMenuActions(store, selectedIds)
 const { execCommand } = canvasMenuActions
-const contextMenu = useCanvasContextMenu(canvasMenu, hasSelection, editor, canvasMenuActions, t)
+const contextMenu = useCanvasContextMenu(
+  store,
+  canvasMenu,
+  hasSelection,
+  editor,
+  canvasMenuActions,
+  t
+)
 
 const selectedGuide = computed(() => store.state.guides.selected)
 

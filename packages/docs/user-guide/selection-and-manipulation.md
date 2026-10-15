@@ -19,6 +19,7 @@ Select objects to move, resize, rotate, duplicate, and organize them on the canv
 - <kbd>Enter</kbd> — select the children of the selected layers; on a vector it edits the path and on text it edits the text
 - <kbd>Shift</kbd> + <kbd>Enter</kbd> or <kbd>\\</kbd> — select the parent of the selected layers
 - <kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd> — select the next or previous sibling, going down or up the layers panel and wrapping at the ends
+- **Right-click → Select matching layers** — select every visible, unlocked layer on the current page that shares a property with the selected layer: type, name, fill, stroke, effects, opacity, size, corner radius, component, or, for text, text style, font, size, weight, and color. Only properties the layer has are listed
 - **Click empty canvas** — deselect all
 
 ## Moving

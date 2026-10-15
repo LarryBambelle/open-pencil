@@ -56,7 +56,7 @@ Feature-by-feature comparison of Figma Design capabilities with Open Pencil's cu
 | Layout guides (columns, rows, grid) | 🔲 | Column/row/grid overlay guides on frames |
 | Measure distances between layers | 🔲 | Alt-hover to show distances |
 | Edit objects in bulk | ✅ | Multi-selection properties panel: edit position, size, appearance, fill, stroke, effects across multiple nodes; shared values display normally, differing values show "Mixed" |
-| Identify matching objects | 🔲 | Find similar layers |
+| Identify matching objects | ✅ | Context menu → Select matching layers: same type, name, fill, stroke, effects, opacity, size, corner radius, component, or text style, font, size, weight, and color |
 | Copy/paste properties | 🔲 | Copy fill/stroke/effects between layers |
 | Parent-child relationships | ✅ | Full hierarchy with parentIndex, reparenting via drag |
 

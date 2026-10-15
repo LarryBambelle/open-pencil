@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "Экспортировать выделение как SVG",
   "exportSelectionAsPPTX": "Экспортировать выделение как PPTX",
   "exportSelectionAsFig": "Экспортировать выделение как .fig",
-  "togglePreview": "Просмотр"
+  "togglePreview": "Просмотр",
+  "selectMatching": "Выбрать подходящие слои",
+  "matchType": "Тот же тип",
+  "matchName": "То же имя",
+  "matchFill": "Та же заливка",
+  "matchStroke": "Тот же контур",
+  "matchEffects": "Те же эффекты",
+  "matchOpacity": "Та же непрозрачность",
+  "matchSize": "Тот же размер",
+  "matchCornerRadius": "Тот же радиус углов",
+  "matchComponent": "Тот же компонент",
+  "matchTextStyle": "Тот же стиль текста",
+  "matchFontFamily": "Тот же шрифт",
+  "matchFontSize": "Тот же размер шрифта",
+  "matchFontWeight": "Та же насыщенность шрифта",
+  "matchTextColor": "Тот же цвет текста"
 }

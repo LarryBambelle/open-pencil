@@ -78,5 +78,20 @@
   "exportSelectionAsSVG": "Exporter la sélection en SVG",
   "exportSelectionAsPPTX": "Exporter la sélection en PPTX",
   "exportSelectionAsFig": "Exporter la sélection en .fig",
-  "togglePreview": "Aperçu"
+  "togglePreview": "Aperçu",
+  "selectMatching": "Sélectionner les calques correspondants",
+  "matchType": "Même type",
+  "matchName": "Même nom",
+  "matchFill": "Même remplissage",
+  "matchStroke": "Même contour",
+  "matchEffects": "Mêmes effets",
+  "matchOpacity": "Même opacité",
+  "matchSize": "Même taille",
+  "matchCornerRadius": "Même rayon de coin",
+  "matchComponent": "Même composant",
+  "matchTextStyle": "Même style de texte",
+  "matchFontFamily": "Même police",
+  "matchFontSize": "Même taille de police",
+  "matchFontWeight": "Même graisse de police",
+  "matchTextColor": "Même couleur de texte"
 }
