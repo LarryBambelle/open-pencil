@@ -8,8 +8,10 @@ import { toast } from '@/app/shell/ui'
 /** Copy properties: the selection on the system clipboard, marked so Paste skips it, as in Figma. */
 export async function copySelectionProperties(store: EditorStore) {
   if (store.state.selectedIds.size === 0) return
-  if (!(await resolveSystemClipboard().copy(store, { properties: true })))
-    toast.error(notificationMessages.get().clipboardAccessBlocked)
+  const messages = notificationMessages.get()
+  if (await resolveSystemClipboard().copy(store, { properties: true }))
+    toast.info(messages.copiedProperties)
+  else toast.error(messages.clipboardAccessBlocked)
 }
 
 /** Paste properties: the look of the one copied layer, from here, another tab, or Figma. */
