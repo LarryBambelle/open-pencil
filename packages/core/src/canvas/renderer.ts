@@ -30,7 +30,7 @@ import { LabelCache } from './labels/cache'
 import * as LabelHitTest from './labels/hit-test'
 import { LabelParagraphCache } from './labels/paragraph-cache'
 import { labelHitOptions } from './labels/style'
-import { createPathCache, deletePathsWithPrefix } from './paths/cache'
+import { NodePathCaches } from './paths/cache'
 import * as RenderColors from './renderer/colors'
 import * as RendererFonts from './renderer/fonts'
 import { destroyRenderer, releaseLiveImages } from './renderer/lifecycle'
@@ -143,13 +143,7 @@ export class SkiaRenderer {
   imageMemoryPage: string | null = null
   onImagePreviewReady: (() => void) | null = null
   readonly imagePreviews = new ImagePreviewCache(() => this.onImagePreviewReady?.())
-  vectorPathCache = createPathCache()
-  vectorStrokePathCache = createPathCache()
-  vectorStrokeOutlineCache = createPathCache()
-  fillGeometryCache = createPathCache()
-  strokeGeometryCache = createPathCache()
-  /** Paths drawn this frame that no cache keeps; the next frame deletes them. */
-  uncachedPaths: Path[][] = []
+  nodePaths = new NodePathCaches()
   /** Path-text glyph silhouettes (stroke-and-union, font units) keyed by blob hash + relative weight. */
   glyphSilhouetteCache = createGlyphSilhouetteCache()
   derivedGlyphPathCache = createDerivedGlyphPathCache()
@@ -757,11 +751,7 @@ export class SkiaRenderer {
   }
 
   invalidateVectorPath(nodeId: string): void {
-    this.vectorPathCache.delete(nodeId)
-    this.vectorStrokePathCache.delete(nodeId)
-    deletePathsWithPrefix(this.vectorStrokeOutlineCache, `${nodeId}|`)
-    this.fillGeometryCache.delete(nodeId)
-    this.strokeGeometryCache.delete(nodeId)
+    this.nodePaths.invalidate(nodeId)
   }
 
   measureTextNode(node: SceneNode, maxWidth?: number): { width: number; height: number } | null {

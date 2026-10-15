@@ -4,7 +4,6 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { computeDescendantVisualBounds } from '@open-pencil/scene-graph/geometry'
 
 import { needsImagePreviews } from '#core/canvas/images/previews'
-import { releaseUncachedPaths } from '#core/canvas/paths/cache'
 import type { RenderOverlays, SkiaRenderer } from '#core/canvas/renderer'
 import { playIslandRoots } from '#core/editor/play/islands'
 import type { EditorState } from '#core/editor/types'
@@ -15,11 +14,12 @@ import { renderSceneBacking, updateSceneBackingPreviewState } from './retained-b
 import { hasTransientPreviews, renderPageWithPreviews } from './transient-previews'
 
 export function renderSceneToCanvas(
-  r: Pick<SkiaRenderer, 'worldViewport' | 'viewportImageRendering' | 'renderNode'>,
+  r: Pick<SkiaRenderer, 'worldViewport' | 'viewportImageRendering' | 'renderNode' | 'nodePaths'>,
   canvas: Canvas,
   graph: SceneGraph,
   pageId: string
 ): void {
+  r.nodePaths.releaseUncached()
   const prevViewport = r.worldViewport
   const previewMode = r.viewportImageRendering
   r.viewportImageRendering = false
@@ -235,7 +235,7 @@ export function render(
     zoom: r.zoom
   })
   r.syncFontGeneration()
-  releaseUncachedPaths(r)
+  r.nodePaths.releaseUncached()
   const p = r.profiler
   p.beginFrame()
   p.setScenePictureDrawTime(0)

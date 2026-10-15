@@ -6,13 +6,8 @@ import type { Path } from 'canvaskit-wasm'
 import { SceneGraph, type Stroke } from '@open-pencil/scene-graph'
 
 import { SkiaRenderer } from '#core/canvas'
-import {
-  cachePaths,
-  createPathCache,
-  releaseUncachedPaths,
-  type PathOwner
-} from '#core/canvas/paths/cache'
-import { render } from '#core/canvas/renderer/pipeline'
+import { createPathCache, NodePathCaches } from '#core/canvas/paths/cache'
+import { render, renderSceneToCanvas } from '#core/canvas/renderer/pipeline'
 import { initCanvasKit } from '#core/io'
 
 const ck = await initCanvasKit()
@@ -82,7 +77,7 @@ function withRenderer(pageId: string, run: (renderer: SkiaRenderer) => void) {
 
 describe('path cache', () => {
   test('evicts the least recently used paths by point count and deletes them', () => {
-    const cache = createPathCache(40)
+    const cache = createPathCache({ maxPoints: 40 })
     const [a, b, c] = [linePath(10), linePath(10), linePath(10)]
     cache.set('a', [a])
     cache.set('b', [b])
@@ -96,16 +91,14 @@ describe('path cache', () => {
     expect(a.isDeleted() && c.isDeleted()).toBe(true)
   })
 
-  test('paths larger than the cache are drawn this frame and deleted with the next', () => {
-    const owner: PathOwner = { uncachedPaths: [] }
-    const cache = createPathCache(20)
+  test('keeps paths larger than a cache until they are released', () => {
+    const paths = new NodePathCaches({ maxPoints: 20 })
     const huge = linePath(50)
-    cachePaths(owner, cache, 'huge', [huge])
-    expect(cache.has('huge')).toBe(false)
+    paths.store(paths.vector, 'huge', [huge])
+    expect(paths.vector.has('huge')).toBe(false)
     expect(huge.isDeleted()).toBe(false)
-    releaseUncachedPaths(owner)
+    paths.releaseUncached()
     expect(huge.isDeleted()).toBe(true)
-    expect(owner.uncachedPaths).toEqual([])
   })
 })
 
@@ -113,12 +106,12 @@ describe('renderer path caches', () => {
   test('stay within their point budget however many vectors are drawn', () => {
     const { graph, pageId } = triangles(200)
     withRenderer(pageId, (renderer) => {
-      renderer.vectorPathCache = createPathCache(400)
+      renderer.nodePaths = new NodePathCaches({ maxPoints: 400 })
       const earliest = [linePath(4)]
-      renderer.vectorPathCache.set('earliest', earliest)
+      renderer.nodePaths.vector.set('earliest', earliest)
       render(renderer, graph, new Set(), {}, 1, 'scene', true)
-      expect(renderer.vectorPathCache.size).toBeGreaterThan(0)
-      expect(renderer.vectorPathCache.weight).toBeLessThanOrEqual(400)
+      expect(renderer.nodePaths.vector.size).toBeGreaterThan(0)
+      expect(renderer.nodePaths.vector.weight).toBeLessThanOrEqual(400)
       expect(earliest.every((path) => path.isDeleted())).toBe(true)
     })
   })
@@ -127,16 +120,12 @@ describe('renderer path caches', () => {
     const { pageId, ids } = triangles(2, [STROKE])
     const [edited, other] = ids
     withRenderer(pageId, (renderer) => {
-      const caches = [
-        renderer.vectorPathCache,
-        renderer.vectorStrokePathCache,
-        renderer.vectorStrokeOutlineCache,
-        renderer.fillGeometryCache,
-        renderer.strokeGeometryCache
-      ]
+      const { vector, vectorStroke, strokeOutline, fillGeometry, strokeGeometry } =
+        renderer.nodePaths
+      const caches = [vector, vectorStroke, strokeOutline, fillGeometry, strokeGeometry]
       const built = caches.map((cache) => {
         const paths = [linePath(3)]
-        cache.set(cache === renderer.vectorStrokeOutlineCache ? `${edited}|1|NONE` : edited, paths)
+        cache.set(cache === strokeOutline ? `${edited}|runs|1|NONE` : edited, paths)
         cache.set(other, [linePath(3)])
         return paths
       })
@@ -146,15 +135,27 @@ describe('renderer path caches', () => {
     })
   })
 
-  test('stroke outlines drawn without a cache entry are deleted when the next frame starts', () => {
+  test('stroke outlines of filled vectors are built once and reused by later frames', () => {
     const { graph, pageId } = triangles(3, [STROKE])
     withRenderer(pageId, (renderer) => {
       render(renderer, graph, new Set(), {}, 1, 'scene', true)
-      const outlines = renderer.uncachedPaths.flat()
-      expect(outlines.length).toBe(3)
-      render(renderer, graph, new Set(), {}, 1, 'scene', true)
-      expect(outlines.every((path) => path.isDeleted())).toBe(true)
-      expect(renderer.uncachedPaths.flat()).toHaveLength(3)
+      const outlines = [...renderer.nodePaths.strokeOutline.values()].flat()
+      expect(outlines).toHaveLength(3)
+      renderer.invalidateAllPictures()
+      render(renderer, graph, new Set(), {}, 2, 'scene', true)
+      expect([...renderer.nodePaths.strokeOutline.values()].flat()).toEqual(outlines)
+      expect(outlines.some((path) => path.isDeleted())).toBe(false)
+    })
+  })
+
+  test('an export releases the paths earlier drawing could not cache', () => {
+    const { graph, pageId } = triangles(1)
+    withRenderer(pageId, (renderer) => {
+      renderer.nodePaths = new NodePathCaches({ maxPoints: 20 })
+      const huge = linePath(50)
+      renderer.nodePaths.store(renderer.nodePaths.fillGeometry, 'huge', [huge])
+      renderSceneToCanvas(renderer, renderer.surface.getCanvas(), graph, pageId)
+      expect(huge.isDeleted()).toBe(true)
     })
   })
 })

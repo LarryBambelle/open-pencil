@@ -86,6 +86,7 @@ function createMockRenderer(overrides: Partial<Record<string, unknown>> = {}) {
         setFillType = mock(() => this)
         delete = mock(() => undefined)
         detachAndDelete = mock(() => ({
+          countPoints: mock(() => 0),
           delete: mock(() => undefined),
           setFillType: mock(() => undefined)
         }))

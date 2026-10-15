@@ -1,4 +1,3 @@
-import { releaseUncachedPaths } from '#core/canvas/paths/cache'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { clearSubtreePictureCache } from '#core/canvas/renderer/state'
 import { fontManager } from '#core/text/fonts'
@@ -12,15 +11,7 @@ function clearRetainedSceneState(r: SkiaRenderer): void {
 }
 
 function disposePathCaches(r: SkiaRenderer): void {
-  for (const cache of [
-    r.vectorPathCache,
-    r.vectorStrokePathCache,
-    r.vectorStrokeOutlineCache,
-    r.fillGeometryCache,
-    r.strokeGeometryCache
-  ])
-    cache.clear()
-  releaseUncachedPaths(r)
+  r.nodePaths.clear()
   r.glyphSilhouetteCache.clear()
   r.derivedGlyphPathCache.clear()
 }

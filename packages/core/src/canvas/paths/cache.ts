@@ -3,37 +3,39 @@ import type { Path } from 'canvaskit-wasm'
 import { ResourceCache } from '#core/cache/resource'
 
 /**
- * Points one path cache keeps, about 40 MB of CanvasKit heap. A page of 20,000 icons with 25 points
- * each takes two thirds of it; without a bound every vector of every page drawn stays decoded.
+ * Points one node path cache keeps, about 64 MB of CanvasKit heap. A page of 20,000 icons with 100
+ * points each takes half of it; a page larger than the cache rebuilds every path on each recording.
  */
-export const PATH_CACHE_POINTS = 1_000_000
+export const PATH_CACHE_POINTS = 4_000_000
 export const PATH_CACHE_ENTRIES = 65_536
 /** Weight of a path beyond its points, so many tiny paths still count against the budget. */
 const PATH_OVERHEAD_POINTS = 8
 
-export type PathCache = ResourceCache<string, Path[]>
-
-/** A renderer, which frees the paths its caches could not keep when the next frame starts. */
-export interface PathOwner {
-  uncachedPaths: Path[][]
+export interface PathCacheLimits {
+  maxPoints?: number
+  maxEntries?: number
 }
 
-function pathWeight(paths: readonly Path[]): number {
+type CachedPaths = Path | Path[]
+
+function pathWeight(value: CachedPaths): number {
+  if (!Array.isArray(value)) return value.countPoints() + PATH_OVERHEAD_POINTS
   let weight = 0
-  for (const path of paths) weight += path.countPoints() + PATH_OVERHEAD_POINTS
+  for (const path of value) weight += path.countPoints() + PATH_OVERHEAD_POINTS
   return weight
 }
 
-function deletePaths(paths: readonly Path[]): void {
-  for (const path of paths) path.delete()
+function deletePaths(value: CachedPaths): void {
+  if (!Array.isArray(value)) value.delete()
+  else for (const path of value) path.delete()
 }
 
-/** Owns the paths built for each node; evicted, replaced, and deleted entries delete their paths. */
-export function createPathCache(
+/** Owns cached paths, weighed by point count; evicted, replaced, and deleted entries delete them. */
+export function createPathCache<K = string, V extends CachedPaths = Path[]>({
   maxPoints = PATH_CACHE_POINTS,
   maxEntries = PATH_CACHE_ENTRIES
-): PathCache {
-  return new ResourceCache<string, Path[]>({
+}: PathCacheLimits = {}): ResourceCache<K, V> {
+  return new ResourceCache<K, V>({
     maxEntries,
     maxWeight: maxPoints,
     weight: pathWeight,
@@ -41,30 +43,59 @@ export function createPathCache(
   })
 }
 
+export type NodePathCache = ResourceCache<string, Path[]>
+
 /**
- * Stores paths built for drawing. Paths larger than the whole cache stay with the renderer until
- * the next frame starts, so the caller can draw them now without leaking them.
+ * The paths a renderer builds for each node, keyed by node id (stroke outlines by `<nodeId>|…`).
+ * Paths a cache rejects as larger than its whole budget stay here until `releaseUncached`, which
+ * runs when a frame or an export starts, so callers can draw them now without leaking them.
  */
-export function cachePaths(owner: PathOwner, cache: PathCache, key: string, paths: Path[]): void {
-  if (!cache.set(key, paths)) owner.uncachedPaths.push(paths)
-}
+export class NodePathCaches {
+  readonly vector: NodePathCache
+  readonly vectorStroke: NodePathCache
+  readonly strokeOutline: NodePathCache
+  readonly fillGeometry: NodePathCache
+  readonly strokeGeometry: NodePathCache
+  private readonly caches: readonly NodePathCache[]
+  private uncached: Path[][] = []
 
-/** Keeps paths for the rest of the frame only, such as outlines drawn without a cache key. */
-export function borrowPathsForFrame(owner: PathOwner, paths: Path[]): void {
-  owner.uncachedPaths.push(paths)
-}
+  constructor(limits: PathCacheLimits = {}) {
+    this.vector = createPathCache(limits)
+    this.vectorStroke = createPathCache(limits)
+    this.strokeOutline = createPathCache(limits)
+    this.fillGeometry = createPathCache(limits)
+    this.strokeGeometry = createPathCache(limits)
+    this.caches = [
+      this.vector,
+      this.vectorStroke,
+      this.strokeOutline,
+      this.fillGeometry,
+      this.strokeGeometry
+    ]
+  }
 
-/** Deletes the paths `cachePaths` or `borrowPathsForFrame` could not keep. */
-export function releaseUncachedPaths(owner: PathOwner): void {
-  const paths = owner.uncachedPaths
-  if (paths.length === 0) return
-  owner.uncachedPaths = []
-  for (const set of paths) deletePaths(set)
-}
+  /** Stores paths built for drawing; the caller borrows them until the next `releaseUncached`. */
+  store(cache: NodePathCache, key: string, paths: Path[]): void {
+    if (!cache.set(key, paths)) this.uncached.push(paths)
+  }
 
-/** Deletes every entry whose key starts with `prefix`, such as a node's stroke outlines. */
-export function deletePathsWithPrefix(cache: PathCache, prefix: string): void {
-  const keys: string[] = []
-  for (const [key] of cache) if (key.startsWith(prefix)) keys.push(key)
-  for (const key of keys) cache.delete(key)
+  /** Deletes every path built for a node. */
+  invalidate(nodeId: string): void {
+    for (const cache of this.caches) cache.delete(nodeId)
+    const outlinePrefix = `${nodeId}|`
+    this.strokeOutline.deleteWhere((_, key) => key.startsWith(outlinePrefix))
+  }
+
+  /** Deletes the paths `store` could not cache. */
+  releaseUncached(): void {
+    const uncached = this.uncached
+    if (uncached.length === 0) return
+    this.uncached = []
+    for (const paths of uncached) deletePaths(paths)
+  }
+
+  clear(): void {
+    for (const cache of this.caches) cache.clear()
+    this.releaseUncached()
+  }
 }
