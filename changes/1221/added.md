@@ -1,0 +1,1 @@
+- When the canvas has to draw without caches or stops drawing after repeated errors, a notice says so, and Try again restarts a canvas that stopped.
