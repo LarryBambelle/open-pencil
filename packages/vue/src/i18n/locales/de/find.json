@@ -1,0 +1,19 @@
+{
+  "title": "Suchen und ersetzen",
+  "find": "Suchen",
+  "replaceWith": "Ersetzen durch",
+  "matchCase": "Groß-/Kleinschreibung beachten",
+  "wholeWord": "Ganzes Wort",
+  "scope": "Suchen in",
+  "scopePage": "Diese Seite",
+  "scopeDocument": "Alle Seiten",
+  "next": "Nächster Treffer",
+  "previous": "Vorheriger Treffer",
+  "count": "{current} von {total}",
+  "noMatches": "Keine Treffer",
+  "loading": "Seiten werden geladen…",
+  "locked": "Gesperrte Ebenen werden gefunden, aber nicht ersetzt.",
+  "replace": "Ersetzen",
+  "replaceAll": "Alle ersetzen",
+  "replaced": "Ersetzt: {count}"
+}

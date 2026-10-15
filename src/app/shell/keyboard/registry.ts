@@ -6,6 +6,7 @@ import { editorCommandMetadata } from '@open-pencil/vue'
 import type { EditorCommandId } from '@open-pencil/vue'
 
 import { useComments } from '@/app/comments/use'
+import { useFindPanel } from '@/app/editor/find/state'
 import { requestRenameSelection } from '@/app/editor/selection/rename-dialog'
 import { TOOL_SHORTCUTS } from '@/app/editor/session'
 import { openSettingsDialog } from '@/app/settings/dialog'
@@ -259,6 +260,11 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       run: ({ closeActiveTab }) => closeActiveTab()
     },
     { id: 'new-tab', keys: ['$mod+KeyN', '$mod+KeyT'], run: ({ createTab }) => createTab() },
+    {
+      id: 'find-and-replace',
+      keys: '$mod+KeyF',
+      run: () => useFindPanel().open()
+    },
     {
       id: 'rename-selection',
       keys: appMenuTinykeysShortcut('selection.rename') ?? '$mod+KeyR',

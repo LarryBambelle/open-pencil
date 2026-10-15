@@ -1,0 +1,19 @@
+{
+  "title": "Trova e sostituisci",
+  "find": "Trova",
+  "replaceWith": "Sostituisci con",
+  "matchCase": "Maiuscole/minuscole",
+  "wholeWord": "Parola intera",
+  "scope": "Cerca in",
+  "scopePage": "Questa pagina",
+  "scopeDocument": "Tutte le pagine",
+  "next": "Risultato successivo",
+  "previous": "Risultato precedente",
+  "count": "{current} di {total}",
+  "noMatches": "Nessun risultato",
+  "loading": "Caricamento delle pagine…",
+  "locked": "I livelli bloccati vengono trovati ma non sostituiti.",
+  "replace": "Sostituisci",
+  "replaceAll": "Sostituisci tutto",
+  "replaced": "Sostituiti: {count}"
+}

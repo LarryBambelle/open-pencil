@@ -46,6 +46,7 @@ import { useFollowView } from '@/app/presence/follow-view'
 import { appRuntimeConfig } from '@/app/runtime/config'
 import CommentsLayer from '@/components/comments/CommentsLayer.vue'
 import IssueMarkerTooltip from '@/components/design-check/IssueMarkerTooltip.vue'
+import FindReplacePanel from '@/components/find/FindReplacePanel.vue'
 import PreparationOverlay from '@/components/preparation/canvas/Overlay.vue'
 import FollowFrame from '@/components/presence/FollowFrame.vue'
 import AppDropOverlay from '@/components/ui/feedback/AppDropOverlay.vue'
@@ -307,6 +308,7 @@ const cursor = computed(() =>
             </PopoverContent>
           </PopoverPortal>
         </PopoverRoot>
+        <FindReplacePanel v-if="isActivePane" />
         <FollowFrame
           v-if="isActivePane && followView.label.value"
           :followed="followView.label.value"

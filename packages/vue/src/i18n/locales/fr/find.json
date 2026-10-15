@@ -1,0 +1,19 @@
+{
+  "title": "Rechercher et remplacer",
+  "find": "Rechercher",
+  "replaceWith": "Remplacer par",
+  "matchCase": "Respecter la casse",
+  "wholeWord": "Mot entier",
+  "scope": "Rechercher dans",
+  "scopePage": "Cette page",
+  "scopeDocument": "Toutes les pages",
+  "next": "Occurrence suivante",
+  "previous": "Occurrence précédente",
+  "count": "{current} sur {total}",
+  "noMatches": "Aucune occurrence",
+  "loading": "Chargement des pages…",
+  "locked": "Les calques verrouillés sont trouvés, mais pas remplacés.",
+  "replace": "Remplacer",
+  "replaceAll": "Tout remplacer",
+  "replaced": "Remplacés : {count}"
+}

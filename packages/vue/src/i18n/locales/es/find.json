@@ -1,0 +1,19 @@
+{
+  "title": "Buscar y reemplazar",
+  "find": "Buscar",
+  "replaceWith": "Reemplazar con",
+  "matchCase": "Coincidir mayúsculas y minúsculas",
+  "wholeWord": "Palabra completa",
+  "scope": "Buscar en",
+  "scopePage": "Esta página",
+  "scopeDocument": "Todas las páginas",
+  "next": "Coincidencia siguiente",
+  "previous": "Coincidencia anterior",
+  "count": "{current} de {total}",
+  "noMatches": "Sin coincidencias",
+  "loading": "Cargando páginas…",
+  "locked": "Las capas bloqueadas se encuentran, pero no se reemplazan.",
+  "replace": "Reemplazar",
+  "replaceAll": "Reemplazar todo",
+  "replaced": "Reemplazadas: {count}"
+}

@@ -23,7 +23,7 @@ Feature-by-feature comparison of Figma Design capabilities with Open Pencil's cu
 | Actions menu / command palette | 🔲 | Figma's quick actions search |
 | Context menu | ✅ | Right-click with clipboard, z-order, grouping, component, visibility, lock, move-to-page actions |
 | Keyboard shortcuts | 🟡 | Tools, editing, components, z-order, visibility/lock, flip, text formatting, and canvas and layer navigation implemented; Scale, Arrow, Eyedropper, and the zoom tool not yet wired |
-| Find and replace | 🔲 | Text search/replace across document |
+| Find and replace | ✅ | Text search and replace across a page or the document, with match case and whole word |
 | Layer outlines view | 🔲 | Wireframe view of all layers |
 | Custom file thumbnails | 🔲 | Thumbnail generated on export, but no custom thumbnail picker |
 | Nudge value settings | 🔲 | Default 1px/10px; Figma allows custom small/big nudge values |

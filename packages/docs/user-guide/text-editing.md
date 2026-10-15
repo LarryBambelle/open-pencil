@@ -60,6 +60,12 @@ The **B / I / U / S** toggle buttons in the Typography section of the properties
 | Copy | <kbd>⌘</kbd><kbd>C</kbd> | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
 | Paste | <kbd>⌘</kbd><kbd>V</kbd> | <kbd>Ctrl</kbd> + <kbd>V</kbd> |
 
+## Find and Replace
+
+Press <kbd>⌘</kbd><kbd>F</kbd> (<kbd>Ctrl</kbd><kbd>F</kbd> on Windows and Linux) to search the text layers of the current page, or of every page. <kbd>Enter</kbd> and <kbd>Shift</kbd><kbd>Enter</kbd>, or the arrows, step through the matches, selecting each layer and switching page when needed. The search is literal text; **Match case** and **Whole word** narrow it. Hidden layers are skipped, and locked layers are found but never replaced.
+
+**Replace** changes the current match and moves to the next; **Replace all** changes every match. Each is one undo step, and the new text keeps the character style of the first character it replaces.
+
 ## Font Picker
 
 Open the font picker in the Typography section of the properties panel to change the font family. The picker features:

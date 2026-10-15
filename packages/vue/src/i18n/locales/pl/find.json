@@ -1,0 +1,19 @@
+{
+  "title": "Znajdź i zamień",
+  "find": "Znajdź",
+  "replaceWith": "Zamień na",
+  "matchCase": "Uwzględnij wielkość liter",
+  "wholeWord": "Całe wyrazy",
+  "scope": "Szukaj w",
+  "scopePage": "Ta strona",
+  "scopeDocument": "Wszystkie strony",
+  "next": "Następne trafienie",
+  "previous": "Poprzednie trafienie",
+  "count": "{current} z {total}",
+  "noMatches": "Brak trafień",
+  "loading": "Wczytywanie stron…",
+  "locked": "Zablokowane warstwy są znajdowane, ale nie są zamieniane.",
+  "replace": "Zamień",
+  "replaceAll": "Zamień wszystko",
+  "replaced": "Zamieniono: {count}"
+}
