@@ -1,0 +1,1 @@
+- Copy properties and Paste properties (Alt+Cmd+C, Alt+Cmd+V, also in the canvas menu) carry fills, strokes, effects, corner radius, and text style from one layer to others.
