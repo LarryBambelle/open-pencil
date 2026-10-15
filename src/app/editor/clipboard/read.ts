@@ -3,7 +3,7 @@ import { getInMemoryClipboardHTML } from '@/app/editor/clipboard/memory'
 import { readTauriClipboardText } from '@/app/tauri/clipboard'
 import { isTauri } from '@/app/tauri/env'
 
-/** The design layers on the system clipboard, else the last copy made here, else null. */
+/** The design layers on the system clipboard, or the last copy made here when it cannot be read. */
 export async function readClipboardHTML(): Promise<string | null> {
   if (isTauri()) {
     try {
@@ -29,6 +29,8 @@ export async function readClipboardHTML(): Promise<string | null> {
         const text = await (await item.getType('text/html')).text()
         if (text && isDesignClipboardHTML(text)) return text
       }
+      // A readable clipboard without design layers holds something newer than our last copy.
+      return null
     } catch (error) {
       console.warn('System clipboard read failed', error)
     }
