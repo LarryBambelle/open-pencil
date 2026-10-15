@@ -1,0 +1,1 @@
+- A canvas frame that fails to draw no longer repeats the error on every frame: the canvas retries after a pause, draws without caches after repeated failures, and stops drawing when the failure persists or CanvasKit's memory is corrupted.
