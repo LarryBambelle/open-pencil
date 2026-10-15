@@ -1,0 +1,1 @@
+- Find and replace (Cmd/Ctrl+F) searches the text of a page or the whole document, with match case and whole word, and replaces one match or all of them in one undo step.
