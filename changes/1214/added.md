@@ -1,0 +1,1 @@
+- The canvas context menu selects every layer on the page that shares a property with the selected layer: type, name, fill, stroke, effects, opacity, size, corner radius, component, or a text layer's style, font, size, weight, and color.
