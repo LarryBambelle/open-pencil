@@ -122,10 +122,10 @@ export class ResourceCache<K, V> {
 
   /** Deletes every entry `predicate` selects, disposing each as a delete. */
   deleteWhere(predicate: (value: V, key: K) => boolean): void {
-    const keys: K[] = []
+    const selected: number[] = []
     for (const [key, index] of this.index)
-      if (predicate(this.slot(index).value, key)) keys.push(key)
-    for (const key of keys) this.delete(key)
+      if (predicate(this.slot(index).value, key)) selected.push(index)
+    this.dispose(selected.map((index) => ({ slot: this.remove(index), reason: 'delete' as const })))
   }
 
   clear(): void {
