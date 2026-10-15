@@ -1,7 +1,18 @@
 import { omitBy, pick } from 'es-toolkit/object'
 
 import { materializeFigFragment } from '@open-pencil/fig'
-import type { SceneGraph, SceneNode, StyleRun } from '@open-pencil/scene-graph'
+import {
+  AUTO_LAYOUT_FIELDS,
+  CORNER_FIELDS,
+  PAINT_FIELDS,
+  STROKE_FIELDS,
+  STYLE_LINK_FIELDS,
+  TEXT_STYLE_FIELDS,
+  sharedStyleRefKey,
+  type SceneGraph,
+  type SceneNode,
+  type StyleRun
+} from '@open-pencil/scene-graph'
 
 import { parseFigmaClipboard, parseOpenPencilClipboard } from '#core/clipboard'
 import { importClipboardDependenciesWithUndo } from '#core/editor/clipboard/dependencies'
@@ -14,87 +25,23 @@ import type { EditorContext } from '#core/editor/types'
  */
 
 const APPEARANCE_FIELDS = [
-  'fills',
-  'strokes',
-  'effects',
-  'opacity',
-  'blendMode',
-  'fillStyleId',
-  'strokeStyleId',
-  'effectStyleId',
-  'strokeWeight',
-  'strokeAlign',
-  'strokeCap',
-  'strokeJoin',
-  'strokeMiterLimit',
-  'dashPattern',
-  'borderTopWeight',
-  'borderRightWeight',
-  'borderBottomWeight',
-  'borderLeftWeight',
-  'independentStrokeWeights'
-] as const satisfies ReadonlyArray<keyof SceneNode>
-
-/** Corner fields, which a text layer has none of in Figma. */
-const CORNER_FIELDS = [
-  'cornerRadius',
-  'topLeftRadius',
-  'topRightRadius',
-  'bottomRightRadius',
-  'bottomLeftRadius',
-  'independentCorners',
-  'cornerSmoothing'
-] as const satisfies ReadonlyArray<keyof SceneNode>
+  ...PAINT_FIELDS,
+  ...STROKE_FIELDS,
+  sharedStyleRefKey('fill'),
+  sharedStyleRefKey('stroke'),
+  sharedStyleRefKey('effect')
+] as const
 
 /** Auto layout and layout grids, which move only from one frame to another. */
 const FRAME_FIELDS = [
-  'layoutGrids',
-  'gridStyleId',
-  'layoutMode',
-  'layoutDirection',
-  'layoutWrap',
-  'primaryAxisAlign',
-  'counterAxisAlign',
-  'counterAxisAlignContent',
-  'primaryAxisSizing',
-  'counterAxisSizing',
-  'itemSpacing',
-  'counterAxisSpacing',
-  'paddingTop',
-  'paddingRight',
-  'paddingBottom',
-  'paddingLeft',
+  ...AUTO_LAYOUT_FIELDS,
   'itemReverseZIndex',
-  'strokesIncludedInLayout',
-  'gridTemplateColumns',
-  'gridTemplateRows',
-  'gridColumnGap',
-  'gridRowGap'
+  'layoutGrids',
+  sharedStyleRefKey('grid')
 ] as const satisfies ReadonlyArray<keyof SceneNode>
 
 /** Text style fields, which move only from one text layer to another. */
-const TEXT_FIELDS = [
-  'fontFamily',
-  'fontSize',
-  'fontWeight',
-  'italic',
-  'lineHeight',
-  'letterSpacing',
-  'paragraphSpacing',
-  'paragraphIndent',
-  'textAlignHorizontal',
-  'textAlignVertical',
-  'textCase',
-  'textDecoration',
-  'textDecorationStyle',
-  'textDecorationThickness',
-  'textDecorationFills',
-  'textDecorationSkipInk',
-  'textUnderlineOffset',
-  'textStyleId',
-  'fontFeatures',
-  'fontVariations'
-] as const satisfies ReadonlyArray<keyof SceneNode>
+const TEXT_FIELDS = [...TEXT_STYLE_FIELDS, sharedStyleRefKey('text')] as const
 
 const NO_APPEARANCE: ReadonlySet<SceneNode['type']> = new Set(['CANVAS', 'SECTION', 'CONNECTOR'])
 const FRAME_TYPES: ReadonlySet<SceneNode['type']> = new Set(['FRAME', 'COMPONENT', 'INSTANCE'])
@@ -129,6 +76,7 @@ function mixedFields(source: SceneNode): Set<string> {
 
 function pastedFields(source: SceneNode, target: SceneNode): PastedField[] {
   const fields: PastedField[] = [...APPEARANCE_FIELDS]
+  // A text layer has no corners in Figma.
   if (source.type !== 'TEXT' && target.type !== 'TEXT') fields.push(...CORNER_FIELDS)
   if (FRAME_TYPES.has(source.type) && FRAME_TYPES.has(target.type)) fields.push(...FRAME_FIELDS)
   if (source.type === 'TEXT' && target.type === 'TEXT') fields.push(...TEXT_FIELDS)
@@ -178,21 +126,13 @@ export function pastedPropertyChanges(
   return changes
 }
 
-const STYLE_LINKS = [
-  'fillStyleId',
-  'strokeStyleId',
-  'effectStyleId',
-  'gridStyleId',
-  'textStyleId'
-] as const satisfies ReadonlyArray<keyof SceneNode>
-
 /**
  * A copied layer from another document, keeping only the style and variable links `graph` can
  * resolve; the copied values stay either way.
  */
 export function withResolvableLinks(source: SceneNode, graph: SceneGraph): SceneNode {
   const resolved = structuredClone(source)
-  for (const field of STYLE_LINKS) {
+  for (const field of STYLE_LINK_FIELDS) {
     const id = resolved[field]
     if (id && !graph.getNode(id)) resolved[field] = null
   }
