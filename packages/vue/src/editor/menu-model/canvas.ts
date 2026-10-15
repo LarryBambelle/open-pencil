@@ -31,6 +31,7 @@ export type CanvasMenuOptions = {
 
 const CANVAS_MENU_GROUPS = [
   ['selection.duplicate', 'selection.delete'],
+  ['selection.copyProperties', 'selection.pasteProperties'],
   [
     'selection.moveToPageWhenAvailable',
     'selection.bringForward',

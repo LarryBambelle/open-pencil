@@ -164,7 +164,9 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       'selection.toggleVisibility',
       'selection.toggleLock',
       'selection.flipHorizontal',
-      'selection.flipVertical'
+      'selection.flipVertical',
+      'selection.copyProperties',
+      'selection.pasteProperties'
     ),
     {
       id: 'export-selection-png',

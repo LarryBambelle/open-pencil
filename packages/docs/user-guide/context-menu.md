@@ -34,6 +34,16 @@ The **Copy/Paste as** submenu offers additional clipboard formats for the select
 
 Clipboard actions are disabled when nothing is selected (except Paste, which is available when the clipboard has content).
 
+## Copy and Paste Properties
+
+| Action | Shortcut (Mac) | Shortcut (Win/Linux) |
+|--------|----------------|----------------------|
+| Copy properties | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>C</kbd> | <kbd>Alt</kbd> + <kbd>Ctrl</kbd> + <kbd>C</kbd> |
+| Paste properties | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>V</kbd> | <kbd>Alt</kbd> + <kbd>Ctrl</kbd> + <kbd>V</kbd> |
+
+- **Copy properties** takes the look of one selected layer: fills, strokes, effects, opacity, blend mode, corner radius, and linked styles and variables. A text layer also gives its text style.
+- **Paste properties** applies it to every selected layer in one undo step. Position, size, content, and layout are never changed, and a text style is applied only to text layers.
+
 ## Z-Order
 
 | Action | Shortcut |

@@ -41,6 +41,8 @@ export const commandMessageDefaults = {
   distributeVertical: 'Distribute vertical spacing',
   moveToPage: 'Move to page',
   setOpacity: 'Set opacity',
+  copyProperties: 'Copy properties',
+  pasteProperties: 'Paste properties',
   zoomTo50: 'Zoom to 50%',
   zoomTo100: 'Zoom to 100%',
   zoomTo200: 'Zoom to 200%',

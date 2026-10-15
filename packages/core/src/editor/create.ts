@@ -43,6 +43,7 @@ import { createDesignIssueActions } from './issues'
 import { createNodeActions } from './nodes'
 import { createPageActions } from './pages'
 import { createPlayActions } from './play/actions'
+import { createPropertiesClipboardActions } from './properties-clipboard'
 import { createSelectionActions } from './selection'
 import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
@@ -275,6 +276,7 @@ export function createEditor(options?: EditorOptions) {
   const undoActions = createUndoActions(ctx)
   const text = createTextActions(ctx)
   const nodes = createNodeActions(ctx)
+  const propertiesClipboard = createPropertiesClipboardActions(ctx, nodes.updateNodeWithUndo)
   const variables = createVariableActions(ctx)
   const designTokens = createDesignTokenActions(ctx, variables, nodes)
   const vectorize = createVectorizeActions(ctx)
@@ -468,6 +470,9 @@ export function createEditor(options?: EditorOptions) {
 
     // Clipboard — bridge functions that need selectedNodes
     ...clipboardBridge,
+
+    // Copy and paste the look of a layer
+    ...propertiesClipboard,
 
     // Components — bridge functions
     ...componentBridge,
