@@ -4,6 +4,7 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { computeDescendantVisualBounds } from '@open-pencil/scene-graph/geometry'
 
 import { needsImagePreviews } from '#core/canvas/images/previews'
+import { releaseUncachedPaths } from '#core/canvas/paths/cache'
 import type { RenderOverlays, SkiaRenderer } from '#core/canvas/renderer'
 import { playIslandRoots } from '#core/editor/play/islands'
 import type { EditorState } from '#core/editor/types'
@@ -234,6 +235,7 @@ export function render(
     zoom: r.zoom
   })
   r.syncFontGeneration()
+  releaseUncachedPaths(r)
   const p = r.profiler
   p.beginFrame()
   p.setScenePictureDrawTime(0)

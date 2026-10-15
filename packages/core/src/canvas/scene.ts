@@ -23,6 +23,7 @@ import { blurSigma } from './effects'
 import { drawVectorMultiStyleFills, paintFills } from './fills'
 import { drawLayoutGrids } from './layout-grids'
 import { renderMaskedChildIds } from './masks'
+import { borrowPathsForFrame, cachePaths } from './paths/cache'
 import type { SkiaRenderer, RenderOverlays } from './renderer'
 import {
   canCacheEffectRaster,
@@ -665,7 +666,7 @@ function vectorStrokePaths(r: SkiaRenderer, node: SceneNode): Path[] | null {
   })
 
   if (paths.length === 0) return null
-  r.vectorStrokePathCache.set(node.id, paths)
+  cachePaths(r, r.vectorStrokePathCache, node.id, paths)
   return paths
 }
 
@@ -709,7 +710,8 @@ function drawVectorPathStrokes(
       const outline = vp.makeStroked(strokeOpts)
       if (outline) outlines.push(outline)
     }
-    if (outlineCacheKey) r.vectorStrokeOutlineCache.set(outlineCacheKey, outlines)
+    if (outlineCacheKey) cachePaths(r, r.vectorStrokeOutlineCache, outlineCacheKey, outlines)
+    else borrowPathsForFrame(r, outlines)
   }
   for (const outline of outlines) canvas.drawPath(outline, r.fillPaint)
 }

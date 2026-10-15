@@ -1,3 +1,4 @@
+import { releaseUncachedPaths } from '#core/canvas/paths/cache'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { clearSubtreePictureCache } from '#core/canvas/renderer/state'
 import { fontManager } from '#core/text/fonts'
@@ -17,12 +18,9 @@ function disposePathCaches(r: SkiaRenderer): void {
     r.vectorStrokeOutlineCache,
     r.fillGeometryCache,
     r.strokeGeometryCache
-  ]) {
-    for (const paths of cache.values()) {
-      for (const p of paths) p.delete()
-    }
+  ])
     cache.clear()
-  }
+  releaseUncachedPaths(r)
   r.glyphSilhouetteCache.clear()
   r.derivedGlyphPathCache.clear()
 }

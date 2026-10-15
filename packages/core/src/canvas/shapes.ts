@@ -5,6 +5,7 @@ import { polygonOutline } from '@open-pencil/scene-graph/polygon'
 
 import { vectorNetworkToPath, geometryBlobToPath } from '#core/vector'
 
+import { cachePaths } from './paths/cache'
 import type { SkiaRenderer } from './renderer'
 
 export function nodeHasRadius(node: SceneNode): boolean {
@@ -529,7 +530,7 @@ export function getVectorPaths(r: SkiaRenderer, node: SceneNode): Path[] | null 
   const cached = r.vectorPathCache.get(node.id)
   if (cached) return cached
   const paths = vectorNetworkToPath(r.ck, node.vectorNetwork)
-  r.vectorPathCache.set(node.id, paths)
+  cachePaths(r, r.vectorPathCache, node.id, paths)
   return paths
 }
 
@@ -540,7 +541,7 @@ export function getFillGeometry(r: SkiaRenderer, node: SceneNode): Path[] | null
   const paths = node.fillGeometry.map((g) =>
     geometryBlobToPath(r.ck, g.commandsBlob, g.windingRule)
   )
-  r.fillGeometryCache.set(node.id, paths)
+  cachePaths(r, r.fillGeometryCache, node.id, paths)
   return paths
 }
 
@@ -551,6 +552,6 @@ export function getStrokeGeometry(r: SkiaRenderer, node: SceneNode): Path[] | nu
   const paths = node.strokeGeometry.map((g) =>
     geometryBlobToPath(r.ck, g.commandsBlob, g.windingRule)
   )
-  r.strokeGeometryCache.set(node.id, paths)
+  cachePaths(r, r.strokeGeometryCache, node.id, paths)
   return paths
 }

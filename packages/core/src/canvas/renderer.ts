@@ -30,6 +30,7 @@ import { LabelCache } from './labels/cache'
 import * as LabelHitTest from './labels/hit-test'
 import { LabelParagraphCache } from './labels/paragraph-cache'
 import { labelHitOptions } from './labels/style'
+import { createPathCache, deletePathsWithPrefix } from './paths/cache'
 import * as RenderColors from './renderer/colors'
 import * as RendererFonts from './renderer/fonts'
 import { destroyRenderer, releaseLiveImages } from './renderer/lifecycle'
@@ -142,11 +143,13 @@ export class SkiaRenderer {
   imageMemoryPage: string | null = null
   onImagePreviewReady: (() => void) | null = null
   readonly imagePreviews = new ImagePreviewCache(() => this.onImagePreviewReady?.())
-  vectorPathCache = new Map<string, Path[]>()
-  vectorStrokePathCache = new Map<string, Path[]>()
-  vectorStrokeOutlineCache = new Map<string, Path[]>()
-  fillGeometryCache = new Map<string, Path[]>()
-  strokeGeometryCache = new Map<string, Path[]>()
+  vectorPathCache = createPathCache()
+  vectorStrokePathCache = createPathCache()
+  vectorStrokeOutlineCache = createPathCache()
+  fillGeometryCache = createPathCache()
+  strokeGeometryCache = createPathCache()
+  /** Paths drawn this frame that no cache keeps; the next frame deletes them. */
+  uncachedPaths: Path[][] = []
   /** Path-text glyph silhouettes (stroke-and-union, font units) keyed by blob hash + relative weight. */
   glyphSilhouetteCache = createGlyphSilhouetteCache()
   derivedGlyphPathCache = createDerivedGlyphPathCache()
@@ -754,24 +757,11 @@ export class SkiaRenderer {
   }
 
   invalidateVectorPath(nodeId: string): void {
-    for (const cache of [this.vectorPathCache, this.vectorStrokePathCache]) {
-      const old = cache.get(nodeId)
-      if (!old) continue
-      for (const p of old) p.delete()
-      cache.delete(nodeId)
-    }
-    for (const [key, paths] of this.vectorStrokeOutlineCache) {
-      if (!key.startsWith(`${nodeId}|`)) continue
-      for (const p of paths) p.delete()
-      this.vectorStrokeOutlineCache.delete(key)
-    }
-    for (const cache of [this.fillGeometryCache, this.strokeGeometryCache]) {
-      const oldGeom = cache.get(nodeId)
-      if (oldGeom) {
-        for (const p of oldGeom) p.delete()
-        cache.delete(nodeId)
-      }
-    }
+    this.vectorPathCache.delete(nodeId)
+    this.vectorStrokePathCache.delete(nodeId)
+    deletePathsWithPrefix(this.vectorStrokeOutlineCache, `${nodeId}|`)
+    this.fillGeometryCache.delete(nodeId)
+    this.strokeGeometryCache.delete(nodeId)
   }
 
   measureTextNode(node: SceneNode, maxWidth?: number): { width: number; height: number } | null {
