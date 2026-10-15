@@ -1,0 +1,1 @@
+- Large documents keep a bounded amount of vector path memory, and filled vectors with strokes no longer use more memory on every frame.
