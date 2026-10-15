@@ -107,6 +107,9 @@ export function createCanvasSurfaceManager({
     const glCtx = canvas.getContext('webgl2') ?? null
     state.renderer = new SkiaRenderer(ck, surface, glCtx)
     state.renderer.onImagePreviewReady = () => renderLoop.markDirty()
+    state.renderer.onRenderHealthChange = (report) => {
+      canvas.dataset.renderHealth = report.health
+    }
     state.renderer.imagePreviews.setDecoder(createImagePreviewDecoder())
     state.renderer.presentationColorSpace = result.presentation ?? 'srgb'
     state.renderer.tracksSceneSettlement = options?.layer !== 'overlays'
@@ -145,7 +148,7 @@ export function createCanvasSurfaceManager({
     if (!state.renderer || isDestroyed()) return
     state.renderer.overlayObstacles = overlayObstacles()
     const view = options?.getRenderState?.() ?? editor.state
-    state.renderer.renderFromEditorState(
+    const drawn = state.renderer.renderFromEditorState(
       view,
       editor.graph,
       editor.textEditor,
@@ -155,15 +158,23 @@ export function createCanvasSurfaceManager({
       options?.layer ?? 'full',
       editor.isInteractiveEditing()
     )
+    if (!drawn) {
+      // A failed frame is retried once the renderer's backoff runs out.
+      if (state.renderer.frameGuard.retryPending) renderLoop.markDirty()
+      return
+    }
     renderLoop.markRendered()
     options?.onFrame?.({ panX: view.panX, panY: view.panY, zoom: view.zoom })
     acknowledgePresentation()
     clearSceneBackingRenderTimer()
-    if (options?.layer === 'scene' && state.renderer.tiledScenePending) {
-      renderLoop.markDirty()
-    }
-    if (options?.layer === 'scene' && state.renderer.sceneBackingNeedsCrispRender) {
-      const delay = Math.max(0, state.renderer.sceneBackingPreviewUntil - performance.now())
+    if (options?.layer === 'scene') scheduleSceneFollowUp(state.renderer)
+  }
+
+  /** Asks for the frames a scene still owes: pending tiles now, a crisp backing after its preview. */
+  function scheduleSceneFollowUp(renderer: SkiaRenderer) {
+    if (renderer.tiledScenePending) renderLoop.markDirty()
+    if (renderer.sceneBackingNeedsCrispRender) {
+      const delay = Math.max(0, renderer.sceneBackingPreviewUntil - performance.now())
       sceneBackingRenderTimer = setTimeout(() => renderLoop.markDirty(), delay)
     }
   }

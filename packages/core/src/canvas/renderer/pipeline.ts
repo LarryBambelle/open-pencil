@@ -9,8 +9,10 @@ import { playIslandRoots } from '#core/editor/play/islands'
 import type { EditorState } from '#core/editor/types'
 import { emitNavigationTrace } from '#core/profiler'
 
+import { disposePathCaches } from './lifecycle'
 import { drawChromePass, drawLabelPass, drawOverlayPass } from './overlay-pass'
 import { renderSceneBacking, updateSceneBackingPreviewState } from './retained-backing'
+import { invalidateAllPictures, invalidateScenePicture } from './state'
 import { hasTransientPreviews, renderPageWithPreviews } from './transient-previews'
 
 export function renderSceneToCanvas(
@@ -47,7 +49,7 @@ export function renderFromEditorState(
   dpr = 1,
   layer: RenderLayer = 'full',
   interactive = false
-): void {
+): boolean {
   const previewMode = r.imagePreviews.enabled && needsImagePreviews(graph)
   if (
     r.imageMemoryGraph !== graph ||
@@ -78,7 +80,7 @@ export function renderFromEditorState(
   r.navigationGeneration = state.navigation.generation
   // A previewing canvas shows the design as it runs: no selection, hover, or edit chrome.
   const previewing = state.play !== null
-  render(
+  return render(
     r,
     graph,
     previewing ? new Set<string>() : state.selectedIds,
@@ -217,6 +219,11 @@ function drawAboveScene(
   canvas.restore()
 }
 
+/**
+ * Draws one frame behind the renderer's frame guard and returns whether it drew. A frame that
+ * throws is contained: the canvas state is restored, the guard backs off, and repeated failures
+ * draw uncached (`degraded`) or stop drawing (`disabled`); `onRenderHealthChange` reports changes.
+ */
 export function render(
   r: SkiaRenderer,
   graph: SceneGraph,
@@ -225,6 +232,67 @@ export function render(
   sceneVersion = -1,
   layer: RenderLayer = 'full',
   interactive = false
+): boolean {
+  const guard = r.frameGuard
+  if (!guard.shouldDraw()) return false
+  let canvas: Canvas | null = null
+  let saveCount = 1
+  try {
+    canvas = r.surface.getCanvas()
+    saveCount = canvas.getSaveCount()
+    drawFrame(
+      r,
+      graph,
+      selectedIds,
+      overlays,
+      sceneVersion,
+      layer,
+      interactive || guard.health === 'degraded'
+    )
+  } catch (error) {
+    recoverFromFailedFrame(r, canvas, saveCount, error)
+    return false
+  }
+  if (guard.succeed()) r.onRenderHealthChange?.(guard.report())
+  return true
+}
+
+/** Drops what a failed frame may have left half-built; a degraded renderer drops every cache. */
+function recoverFromFailedFrame(
+  r: SkiaRenderer,
+  canvas: Canvas | null,
+  saveCount: number,
+  error: unknown
+): void {
+  const guard = r.frameGuard
+  let changed = guard.fail(error)
+  if (guard.health !== 'disabled') {
+    try {
+      canvas?.restoreToCount(saveCount)
+      r.profiler.endFrame()
+      if (guard.health === 'healthy') {
+        invalidateScenePicture(r)
+      } else {
+        invalidateAllPictures(r)
+        r.imageCache.clear()
+        disposePathCaches(r)
+      }
+    } catch (recoveryError) {
+      changed = guard.disable(recoveryError) || changed
+    }
+  }
+  if (guard.consecutiveFailures === 1 || changed) console.warn('Canvas frame failed:', error)
+  if (changed) r.onRenderHealthChange?.(guard.report())
+}
+
+function drawFrame(
+  r: SkiaRenderer,
+  graph: SceneGraph,
+  selectedIds: Set<string>,
+  overlays: RenderOverlays,
+  sceneVersion: number,
+  layer: RenderLayer,
+  interactive: boolean
 ): void {
   emitNavigationTrace('render:start', {
     layer,

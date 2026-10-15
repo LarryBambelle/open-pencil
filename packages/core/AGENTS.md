@@ -67,6 +67,7 @@ Canvas is CanvasKit (Skia WASM) on a WebGL surface, not DOM.
 - `renderNow()` is only for surface recreation and font loading, where an immediate draw is required.
 - The resize observer uses a rAF throttle, not a debounce; debounce causes canvas skew.
 - Viewport culling skips off-screen nodes; unclipped parents are not culled because children may extend beyond bounds.
+- A frame that throws is contained by `render` in `packages/core/src/canvas/renderer/pipeline.ts`, whose `FrameGuard` backs off, draws uncached, then stops drawing and reports through `onRenderHealthChange`; hosts read its boolean result instead of catching render errors themselves (`packages/core/tests/canvas/renderer/failed-frames.test.ts`).
 - Overscan images accelerate navigation; settled scenes rasterize existing retained pictures at the live viewport size and origin. Pixel-grid alignment alone does not guarantee Skia anti-aliasing parity. Keep settlement pending until the viewport pass completes; do not add a second viewport image cache.
 
 ### Paints
