@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "Impossibile aprire i file passati a OpenPencil: {error}",
   "tokensLeftOut": "Esclusi dal foglio di stile: {names}.",
   "designTokensLeftOut": "Esclusi dai design token: {names}.",
-  "designTokensImported": "Importati {count} design token."
+  "designTokensImported": "Importati {count} design token.",
+  "canvasRenderingDegraded": "La tela ha riscontrato un errore di disegno e ora disegna senza cache, il che può essere più lento. Il documento non è interessato.",
+  "canvasRenderingStopped": "La tela ha smesso di disegnare dopo errori ripetuti. Salva il lavoro, poi riprova o ricarica OpenPencil.",
+  "canvasRenderingRetry": "Riprova",
+  "canvasRenderingRecovered": "La tela disegna di nuovo normalmente."
 }

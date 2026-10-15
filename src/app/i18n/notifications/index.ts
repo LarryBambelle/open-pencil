@@ -35,7 +35,13 @@ export const notificationMessageDefaults = {
   deepLinkPickerDismissed: 'Link cancelled: no file was chosen.',
   deepLinkCancelled: params('Link cancelled: expected a file ending in “{file}”.'),
   deepLinkNodeNotFound: params('Node “{node}” was not found in “{file}”.'),
-  openQueuedFilesFailed: params('Could not open the files handed to OpenPencil: {error}')
+  openQueuedFilesFailed: params('Could not open the files handed to OpenPencil: {error}'),
+  canvasRenderingDegraded:
+    'The canvas hit a drawing error and now draws without caches, which can be slower. Your document is not affected.',
+  canvasRenderingStopped:
+    'The canvas stopped drawing after repeated errors. Save your work, then try again or reload OpenPencil.',
+  canvasRenderingRetry: 'Try again',
+  canvasRenderingRecovered: 'The canvas draws normally again.'
 } as const
 
 const localeLoaders = {

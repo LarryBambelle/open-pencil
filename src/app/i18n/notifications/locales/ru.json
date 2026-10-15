@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "Не удалось открыть файлы, переданные OpenPencil: {error}",
   "tokensLeftOut": "Не вошли в таблицу стилей: {names}.",
   "designTokensLeftOut": "Не вошли в дизайн-токены: {names}.",
-  "designTokensImported": "Импортировано дизайн-токенов: {count}."
+  "designTokensImported": "Импортировано дизайн-токенов: {count}.",
+  "canvasRenderingDegraded": "При отрисовке холста произошла ошибка, и теперь он рисуется без кэша, что может быть медленнее. Документ не затронут.",
+  "canvasRenderingStopped": "Холст перестал отрисовываться после повторяющихся ошибок. Сохраните работу, затем повторите попытку или перезагрузите OpenPencil.",
+  "canvasRenderingRetry": "Повторить",
+  "canvasRenderingRecovered": "Холст снова отрисовывается нормально."
 }

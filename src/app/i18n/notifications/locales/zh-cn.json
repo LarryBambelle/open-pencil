@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "无法打开传递给 OpenPencil 的文件：{error}",
   "tokensLeftOut": "未写入样式表：{names}",
   "designTokensLeftOut": "未写入设计令牌：{names}",
-  "designTokensImported": "已导入 {count} 个设计令牌。"
+  "designTokensImported": "已导入 {count} 个设计令牌。",
+  "canvasRenderingDegraded": "画布绘制出错，现在改为不使用缓存绘制，速度可能变慢。你的文档不受影响。",
+  "canvasRenderingStopped": "画布在多次出错后已停止绘制。请先保存工作，然后重试或重新加载 OpenPencil。",
+  "canvasRenderingRetry": "重试",
+  "canvasRenderingRecovered": "画布已恢复正常绘制。"
 }

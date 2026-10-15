@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "Nie udało się otworzyć plików przekazanych do OpenPencil: {error}",
   "tokensLeftOut": "Pominięte w arkuszu stylów: {names}.",
   "designTokensLeftOut": "Pominięte w tokenach projektowych: {names}.",
-  "designTokensImported": "Zaimportowano tokeny projektowe: {count}."
+  "designTokensImported": "Zaimportowano tokeny projektowe: {count}.",
+  "canvasRenderingDegraded": "Podczas rysowania płótna wystąpił błąd i jest ono teraz rysowane bez pamięci podręcznej, co może być wolniejsze. Dokument nie jest zagrożony.",
+  "canvasRenderingStopped": "Płótno przestało być rysowane po powtarzających się błędach. Zapisz pracę, a następnie spróbuj ponownie lub przeładuj OpenPencil.",
+  "canvasRenderingRetry": "Spróbuj ponownie",
+  "canvasRenderingRecovered": "Płótno znów jest rysowane normalnie."
 }

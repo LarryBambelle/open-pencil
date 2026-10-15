@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "Die an OpenPencil übergebenen Dateien konnten nicht geöffnet werden: {error}",
   "tokensLeftOut": "Nicht im Stylesheet enthalten: {names}.",
   "designTokensLeftOut": "Nicht in den Design-Tokens enthalten: {names}.",
-  "designTokensImported": "{count} Design-Tokens importiert."
+  "designTokensImported": "{count} Design-Tokens importiert.",
+  "canvasRenderingDegraded": "Beim Zeichnen der Arbeitsfläche ist ein Fehler aufgetreten; sie wird jetzt ohne Cache gezeichnet, was langsamer sein kann. Dein Dokument ist nicht betroffen.",
+  "canvasRenderingStopped": "Die Arbeitsfläche zeichnet nach wiederholten Fehlern nicht mehr. Speichere deine Arbeit und versuche es dann erneut oder lade OpenPencil neu.",
+  "canvasRenderingRetry": "Erneut versuchen",
+  "canvasRenderingRecovered": "Die Arbeitsfläche wird wieder normal gezeichnet."
 }

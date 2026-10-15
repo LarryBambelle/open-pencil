@@ -1,3 +1,4 @@
+import type { RenderHealthReport } from '@open-pencil/core/canvas'
 import type { EditorState } from '@open-pencil/core/editor'
 import type { ViewportTransform } from '@open-pencil/core/geometry'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
@@ -47,6 +48,11 @@ export interface UseCanvasOptions {
    * when no surface could be configured.
    */
   onPresentation?: (colorSpace: PresentationColorSpace | null) => void
+  /**
+   * Reports when this canvas starts drawing without caches after failed frames, stops drawing,
+   * or recovers. `retry` makes a canvas that stopped drawing try again.
+   */
+  onRenderHealthChange?: (report: RenderHealthReport, retry: () => void) => void
   /**
    * Supplies the view state rendered by this canvas. Defaults to `editor.state`.
    *

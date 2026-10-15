@@ -42,6 +42,7 @@ import { useEditorStore } from '@/app/editor/active-store'
 import { useCanvasCollaborationAwareness } from '@/app/editor/canvas/collaboration-awareness'
 import { createCanvasContextSelection } from '@/app/editor/canvas/context-selection'
 import { canvasOverlayObstacles } from '@/app/editor/canvas/obstacles'
+import { createRenderHealthNotice } from '@/app/editor/canvas/render-health'
 import { useFollowView } from '@/app/presence/follow-view'
 import { appRuntimeConfig } from '@/app/runtime/config'
 import CommentsLayer from '@/components/comments/CommentsLayer.vue'
@@ -92,6 +93,8 @@ const shouldSuspendRender = () =>
   store.state.preparation.kind !== 'font-retry' &&
   store.state.preparation.phase !== 'preparing-render'
 
+const onRenderHealthChange = createRenderHealthNotice()
+
 /** The pan and zoom of the scene's last drawn frame, which preview islands follow. */
 const drawnView = shallowRef<ViewportTransform | null>(null)
 
@@ -110,7 +113,8 @@ useCanvas(sceneCanvasRef, store, {
     store.preparationController.acknowledgePresentation(sceneVersion),
   onPresentation: (colorSpace) => {
     store.state.canvasPresentation = colorSpace
-  }
+  },
+  onRenderHealthChange
 })
 const { hitTestSectionTitle, hitTestComponentLabel, hitTestFrameTitle, hitTestIssueMarker } =
   useCanvas(canvasRef, store, {
@@ -121,7 +125,8 @@ const { hitTestSectionTitle, hitTestComponentLabel, hitTestFrameTitle, hitTestIs
     getOverlayObstacles: () => canvasOverlayObstacles(canvasRef.value),
     shouldSuspendRender,
     getRenderState,
-    onViewportResize
+    onViewportResize,
+    onRenderHealthChange
   })
 const {
   cursorOverride,

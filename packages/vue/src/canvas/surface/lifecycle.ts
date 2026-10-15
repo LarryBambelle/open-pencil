@@ -109,6 +109,7 @@ export function createCanvasSurfaceManager({
     state.renderer.onImagePreviewReady = () => renderLoop.markDirty()
     state.renderer.onRenderHealthChange = (report) => {
       canvas.dataset.renderHealth = report.health
+      options?.onRenderHealthChange?.(report, retryRendering)
     }
     state.renderer.imagePreviews.setDecoder(createImagePreviewDecoder())
     state.renderer.presentationColorSpace = result.presentation ?? 'srgb'
@@ -177,6 +178,12 @@ export function createCanvasSurfaceManager({
       const delay = Math.max(0, renderer.sceneBackingPreviewUntil - performance.now())
       sceneBackingRenderTimer = setTimeout(() => renderLoop.markDirty(), delay)
     }
+  }
+
+  function retryRendering() {
+    if (!state.renderer || isDestroyed()) return
+    state.renderer.resetRenderHealth()
+    renderLoop.markDirty()
   }
 
   const renderLoop = createCanvasRenderLoop(editor, renderNow, {

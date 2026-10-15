@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "Impossible d’ouvrir les fichiers transmis à OpenPencil : {error}",
   "tokensLeftOut": "Non inclus dans la feuille de style : {names}.",
   "designTokensLeftOut": "Exclus des design tokens : {names}.",
-  "designTokensImported": "{count} design tokens importés."
+  "designTokensImported": "{count} design tokens importés.",
+  "canvasRenderingDegraded": "Le canevas a rencontré une erreur de dessin et dessine désormais sans cache, ce qui peut être plus lent. Votre document n’est pas touché.",
+  "canvasRenderingStopped": "Le canevas ne dessine plus après des erreurs répétées. Enregistrez votre travail, puis réessayez ou rechargez OpenPencil.",
+  "canvasRenderingRetry": "Réessayer",
+  "canvasRenderingRecovered": "Le canevas dessine de nouveau normalement."
 }

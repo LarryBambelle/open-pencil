@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "No se pudieron abrir los archivos entregados a OpenPencil: {error}",
   "tokensLeftOut": "No incluido en la hoja de estilos: {names}.",
   "designTokensLeftOut": "No incluidos en los design tokens: {names}.",
-  "designTokensImported": "Se importaron {count} design tokens."
+  "designTokensImported": "Se importaron {count} design tokens.",
+  "canvasRenderingDegraded": "El lienzo tuvo un error de dibujo y ahora dibuja sin cachés, lo que puede ser más lento. Tu documento no se ve afectado.",
+  "canvasRenderingStopped": "El lienzo dejó de dibujar tras errores repetidos. Guarda tu trabajo y vuelve a intentarlo o recarga OpenPencil.",
+  "canvasRenderingRetry": "Reintentar",
+  "canvasRenderingRecovered": "El lienzo vuelve a dibujar con normalidad."
 }

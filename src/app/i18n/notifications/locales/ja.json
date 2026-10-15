@@ -29,5 +29,9 @@
   "openQueuedFilesFailed": "OpenPencil に渡されたファイルを開けませんでした: {error}",
   "tokensLeftOut": "スタイルシートに含まれていません: {names}",
   "designTokensLeftOut": "デザイントークンに含まれていません: {names}",
-  "designTokensImported": "{count} 個のデザイントークンを読み込みました。"
+  "designTokensImported": "{count} 個のデザイントークンを読み込みました。",
+  "canvasRenderingDegraded": "キャンバスの描画でエラーが発生したため、キャッシュなしで描画しています。動作が遅くなる場合があります。ドキュメントには影響ありません。",
+  "canvasRenderingStopped": "エラーが繰り返されたため、キャンバスの描画を停止しました。作業を保存してから、再試行するか OpenPencil を再読み込みしてください。",
+  "canvasRenderingRetry": "再試行",
+  "canvasRenderingRecovered": "キャンバスは通常どおり描画されています。"
 }
