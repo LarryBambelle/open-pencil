@@ -3,8 +3,17 @@ import { getInMemoryClipboardHTML } from '@/app/editor/clipboard/memory'
 import { readTauriClipboardText } from '@/app/tauri/clipboard'
 import { isTauri } from '@/app/tauri/env'
 
+/** The browser's asynchronous clipboard, where this context has one. */
+function browserClipboard(): Pick<Clipboard, 'read'> | undefined {
+  if (typeof navigator === 'undefined') return undefined
+  const { clipboard } = navigator as Partial<Navigator>
+  return typeof clipboard?.read === 'function' ? clipboard : undefined
+}
+
 /** The design layers on the system clipboard, or the last copy made here when it cannot be read. */
-export async function readClipboardHTML(): Promise<string | null> {
+export async function readClipboardHTML(
+  clipboard: Pick<Clipboard, 'read'> | undefined = browserClipboard()
+): Promise<string | null> {
   if (isTauri()) {
     try {
       const text = await readTauriClipboardText()
@@ -18,12 +27,9 @@ export async function readClipboardHTML(): Promise<string | null> {
     }
   }
 
-  if (
-    typeof navigator !== 'undefined' &&
-    typeof (navigator as Partial<Navigator>).clipboard?.read === 'function'
-  ) {
+  if (clipboard) {
     try {
-      const items = await navigator.clipboard.read()
+      const items = await clipboard.read()
       for (const item of items) {
         if (!item.types.includes('text/html')) continue
         const text = await (await item.getType('text/html')).text()

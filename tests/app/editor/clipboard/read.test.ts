@@ -8,10 +8,6 @@ import { asDouble } from '#tests/helpers/doubles'
 const DESIGN = '<span data-buffer="<!--(figma)AAAA(/figma)-->"></span>'
 const LAST_COPY = '<span data-buffer="<!--(figma)BBBB(/figma)-->"></span>'
 
-function stubClipboard(read: () => Promise<ClipboardItem[]>) {
-  Object.defineProperty(navigator, 'clipboard', { value: { read }, configurable: true })
-}
-
 function item(types: Record<string, string>): ClipboardItem {
   return asDouble<ClipboardItem>({
     types: Object.keys(types),
@@ -20,26 +16,26 @@ function item(types: Record<string, string>): ClipboardItem {
 }
 
 beforeEach(() => setInMemoryClipboardHTML(LAST_COPY))
-afterEach(() => {
-  clearInMemoryClipboardHTML()
-  Reflect.deleteProperty(navigator, 'clipboard')
-})
+afterEach(() => clearInMemoryClipboardHTML())
 
 describe('readClipboardHTML', () => {
   test('reads design layers from the system clipboard', async () => {
-    stubClipboard(async () => [item({ 'text/html': DESIGN })])
-    expect(await readClipboardHTML()).toBe(DESIGN)
+    expect(await readClipboardHTML({ read: async () => [item({ 'text/html': DESIGN })] })).toBe(
+      DESIGN
+    )
   })
 
   test('a readable clipboard without design layers is not replaced by the last copy', async () => {
-    stubClipboard(async () => [item({ 'text/plain': 'copied elsewhere' })])
-    expect(await readClipboardHTML()).toBeNull()
+    const clipboard = { read: async () => [item({ 'text/plain': 'copied elsewhere' })] }
+    expect(await readClipboardHTML(clipboard)).toBeNull()
   })
 
   test('falls back to the last copy when the clipboard cannot be read', async () => {
-    stubClipboard(async () => {
-      throw new DOMException('Read permission denied', 'NotAllowedError')
-    })
-    expect(await readClipboardHTML()).toBe(LAST_COPY)
+    const clipboard = {
+      read: async (): Promise<ClipboardItem[]> => {
+        throw new Error('Read permission denied')
+      }
+    }
+    expect(await readClipboardHTML(clipboard)).toBe(LAST_COPY)
   })
 })
