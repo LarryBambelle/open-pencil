@@ -32,7 +32,9 @@ export function preparePDFFonts(
  * Reads the pages a `pages` export asks for, or every page, so planning sees their layers.
  */
 export function readPDFPages(graph: SceneGraph, pageIds?: readonly string[]): void {
-  for (const pageId of pageIds ?? graph.getPages().map((page) => page.id)) {
+  // No ids, or an empty list, exports every page, as planPDFPages reads them.
+  const ids = pageIds?.length ? pageIds : graph.getPages().map((page) => page.id)
+  for (const pageId of ids) {
     populateFigPage(graph, pageId)
   }
 }

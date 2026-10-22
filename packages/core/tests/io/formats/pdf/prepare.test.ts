@@ -29,6 +29,16 @@ test('pages not read yet are read before a pages export is planned', async () =>
   expect(plan().map((spec) => spec.pageId)).toEqual([first.id, second.id, third.id])
 })
 
+test('an empty page list reads every page, as it exports every page', async () => {
+  const graph = await openedFig()
+  const [first, second, third] = graph.getPages()
+
+  readPDFPages(graph, [])
+
+  const planned = planPDFPages(graph, { mode: 'pages', pageIds: [], currentPageId: first.id })
+  expect(planned.map((spec) => spec.pageId)).toEqual([first.id, second.id, third.id])
+})
+
 test('only the pages a pages export asks for are read', async () => {
   const graph = await openedFig()
   const [, second, third] = graph.getPages()
