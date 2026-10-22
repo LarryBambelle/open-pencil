@@ -71,4 +71,52 @@ describe('SVG text with laid-out lines', () => {
     expect(svg).toContain('text-anchor="end"')
     expect(svg).toContain('<tspan x="170" y="18">مرحبا</tspan>')
   })
+
+  test('with character edges every span is placed where its characters are drawn', () => {
+    const edges = (from: number, widths: number[]) =>
+      new Map(
+        widths.map((width, index) => [
+          from + index,
+          { left: index * 10, right: index * 10 + width }
+        ])
+      )
+    const svg = exportText(
+      {
+        text: 'Bold',
+        styleRuns: [{ start: 1, length: 3, style: { fontWeight: 700 } }]
+      },
+      [{ start: 0, end: 4, x: 0, y: 18, width: 40, characters: edges(0, [10, 10, 10, 10]) }]
+    )
+    expect(svg).toContain('xml:space="preserve"')
+    expect(svg).toContain(
+      '<tspan x="0" y="18">B</tspan><tspan x="10" y="18" font-weight="700">old</tspan>'
+    )
+  })
+
+  test('a right-to-left span is placed by the right edge of its characters', () => {
+    const svg = exportText(
+      {
+        text: 'אבג',
+        textDirection: 'RTL',
+        styleRuns: [{ start: 1, length: 2, style: { fontWeight: 700 } }]
+      },
+      [
+        {
+          start: 0,
+          end: 3,
+          x: 70,
+          y: 18,
+          width: 30,
+          characters: new Map([
+            [0, { left: 90, right: 100 }],
+            [1, { left: 80, right: 90 }],
+            [2, { left: 70, right: 80 }]
+          ])
+        }
+      ]
+    )
+    expect(svg).toContain(
+      '<tspan x="100" y="18">א</tspan><tspan x="90" y="18" font-weight="700">בג</tspan>'
+    )
+  })
 })

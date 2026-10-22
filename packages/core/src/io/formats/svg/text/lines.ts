@@ -14,6 +14,17 @@ export interface SVGTextLine {
   x: number
   y: number
   width: number
+  /**
+   * Where the characters are drawn, by index in `node.text`: the left and right edges of their
+   * glyphs in the node. With them every span is placed where the editor draws it, instead of
+   * after the span before it, which a renderer measures in fonts of its own.
+   */
+  characters?: ReadonlyMap<number, SVGCharacterEdges>
+}
+
+export interface SVGCharacterEdges {
+  left: number
+  right: number
 }
 
 /** The lines of a text node from the host's text layout, or null to keep the text on one line. */
@@ -42,6 +53,24 @@ function textPieces(node: SceneNode): TextPiece[] {
   return pieces
 }
 
+const lineEdges = (line: SVGTextLine): SVGCharacterEdges => ({
+  left: line.x,
+  right: line.x + line.width
+})
+
+/** The left and right edges of the characters from `from` to `to` that have glyphs. */
+function spanEdges(line: SVGTextLine, from: number, to: number): SVGCharacterEdges | null {
+  let left = Infinity
+  let right = -Infinity
+  for (let index = from; index < to; index++) {
+    const edges = line.characters?.get(index)
+    if (!edges) continue
+    left = Math.min(left, edges.left)
+    right = Math.max(right, edges.right)
+  }
+  return left <= right ? { left, right } : null
+}
+
 function lineSpans(
   text: string,
   pieces: readonly TextPiece[],
@@ -51,18 +80,18 @@ function lineSpans(
 ): SVGNode[] {
   // The newline that ends a line is not drawn.
   const end = text[line.end - 1] === '\n' ? line.end - 1 : line.end
-  // Right-to-left lines are anchored at their end, so they start from the line's right edge.
-  const position = { x: round(rtl ? line.x + line.width : line.x), y: round(line.y) }
+  const y = round(line.y)
   const spans: SVGNode[] = []
   for (const piece of pieces) {
     const from = Math.max(piece.from, line.start)
     const to = Math.min(piece.to, end)
     if (to <= from) continue
     const attrs = piece.style ? spanAttrs(piece.style) : {}
-    // The first span of a line places it; the rest follow on from it.
-    spans.push(
-      svg('tspan', spans.length === 0 ? { ...position, ...attrs } : attrs, text.slice(from, to))
-    )
+    // Right-to-left text is anchored at its end, so a span is placed by its right edge. Without
+    // character edges the first span of a line places it, and the rest follow on from it.
+    const edges = spanEdges(line, from, to) ?? (spans.length === 0 ? lineEdges(line) : null)
+    const position = edges ? { x: round(rtl ? edges.right : edges.left), y } : {}
+    spans.push(svg('tspan', { ...position, ...attrs }, text.slice(from, to)))
   }
   return spans
 }

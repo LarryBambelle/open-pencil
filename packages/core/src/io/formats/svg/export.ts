@@ -271,7 +271,12 @@ function renderTextNode(node: SceneNode, fillAttr: string | null, ctx: SVGExport
   })
 
   if (laidOut) {
-    return svg('text', attrs, ...laidOutTextSpans(node, laidOut, direction === 'RTL', spanAttrs))
+    // Laid-out spans sit where the editor draws them, which keeps every space it draws.
+    return svg(
+      'text',
+      { ...attrs, 'xml:space': 'preserve' },
+      ...laidOutTextSpans(node, laidOut, direction === 'RTL', spanAttrs)
+    )
   }
 
   const x = textXForNode(node, direction)

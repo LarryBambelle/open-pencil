@@ -15,5 +15,5 @@ export {
 } from './import'
 export { isSVGMarkup } from './metadata'
 export type { SVGFontAlias } from './defs'
-export type { SVGTextLayout, SVGTextLine } from './text/lines'
+export type { SVGCharacterEdges, SVGTextLayout, SVGTextLine } from './text/lines'
 export { svgImportFonts } from './text/import'

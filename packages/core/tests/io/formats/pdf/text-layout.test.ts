@@ -41,3 +41,28 @@ test('a paragraph wrapped on the canvas keeps its lines in the SVG drawn into a 
   expect(spans).toHaveLength(2)
   expect(spans.map((span) => span.replace(/<[^>]+>/g, '')).join('')).toBe(SENTENCE)
 })
+
+test('a style run that starts mid-word is placed where the canvas draws its first letter', async () => {
+  const graph = new SceneGraph()
+  const pageId = graph.getPages()[0].id
+  const node = graph.createNode('TEXT', pageId, {
+    text: 'Bold',
+    fontFamily: 'Inter',
+    fontSize: 20,
+    width: 200,
+    height: 24,
+    styleRuns: [{ start: 1, length: 3, style: { letterSpacing: 4 } }]
+  })
+
+  const svg = await withPDFTextLayout(async (textLayout) => {
+    const [line] = expectDefined(textLayout?.(node), 'text lines')
+    const o = expectDefined(line.characters?.get(1), 'edges of "o"')
+    const b = expectDefined(line.characters?.get(0), 'edges of "B"')
+    expect(o.left).toBeCloseTo(b.right, 3)
+    return renderNodesToSVG(graph, pageId, [node.id], { xmlDeclaration: false, textLayout })
+  })
+
+  const spans = expectDefined(svg, 'SVG').match(/<tspan [^>]*>/g) ?? []
+  expect(spans).toHaveLength(2)
+  expect(spans.every((span) => / x="[\d.]+"/.test(span))).toBe(true)
+})

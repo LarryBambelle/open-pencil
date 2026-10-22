@@ -1,9 +1,10 @@
+import type { ShapedTextGlyph } from '@open-pencil/fig/node-change'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { withTextShaper } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
 import { populateAllFigPages } from '#core/io/formats/fig'
-import type { SVGTextLayout } from '#core/io/formats/svg'
+import type { SVGCharacterEdges, SVGTextLayout } from '#core/io/formats/svg'
 import { computeAllLayouts } from '#core/layout'
 import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
@@ -67,13 +68,33 @@ export async function withPDFTextLayout<T>(
     render((node) => {
       const shaped = shape(node)
       if (!shaped?.baselines.length) return null
+      const characters = characterEdges(shaped.glyphs)
       return shaped.baselines.map((line) => ({
         start: line.firstCharacter,
         end: line.endCharacter,
         x: line.position.x,
         y: line.position.y,
-        width: line.width
+        width: line.width,
+        characters
       }))
     })
   )
+}
+
+/** The left and right edges of the glyphs each character is drawn with. */
+function characterEdges(glyphs: readonly ShapedTextGlyph[]): Map<number, SVGCharacterEdges> {
+  const edges = new Map<number, SVGCharacterEdges>()
+  for (const glyph of glyphs) {
+    if (glyph.firstCharacter === undefined) continue
+    const left = glyph.x
+    const right = glyph.x + glyph.advance
+    const known = edges.get(glyph.firstCharacter)
+    edges.set(
+      glyph.firstCharacter,
+      known
+        ? { left: Math.min(known.left, left), right: Math.max(known.right, right) }
+        : { left, right }
+    )
+  }
+  return edges
 }
