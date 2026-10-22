@@ -6,31 +6,12 @@ import { expectDefined } from '#core-tests/helpers/assert'
 import { FIXTURES } from '#core-tests/helpers/paths'
 
 import {
-  embedFonts,
-  type PDFFace,
-  type PDFFontTarget,
-  type SVGTextElementLike
+  embeddedFontAlias,
+  planFontEmbedding,
+  registerEmbeddedFonts,
+  type PDFFontTarget
 } from '#core/io/formats/pdf/fonts'
 import { fontManager } from '#core/text/fonts'
-
-/** An SVG element with attributes and a parent, enough for the font pass. */
-class Element implements SVGTextElementLike {
-  readonly attributes: Map<string, string>
-  constructor(
-    attributes: Record<string, string>,
-    readonly parentElement: Element | null = null
-  ) {
-    this.attributes = new Map(Object.entries(attributes))
-  }
-  getAttribute(name: string) {
-    return this.attributes.get(name) ?? null
-  }
-  setAttribute(name: string, value: string) {
-    this.attributes.set(name, value)
-  }
-}
-
-const svgRoot = (...elements: Element[]) => ({ querySelectorAll: () => elements })
 
 /** Records what jsPDF would be asked to register. */
 function pdfDoc() {
@@ -58,80 +39,66 @@ beforeAll(async () => {
   cff = await fixture('NotoSansCJK-Test.otf')
 })
 
-describe('embedFonts', () => {
-  test('registers each face once and points its text at it', async () => {
+describe('PDF font embedding', () => {
+  test('registers each face under a family name of its own', () => {
     const { doc, fonts, files } = pdfDoc()
-    const heading = new Element({ 'font-family': 'Inter', 'font-weight': '700' })
-    const body = new Element({ 'font-family': "'Inter', sans-serif" })
-    const bold = new Element({ 'font-weight': 'bold' }, body)
-    const loaded: PDFFace[] = []
-
-    const report = await embedFonts(doc, [svgRoot(heading, body, bold)], async (face) => {
-      loaded.push(face)
-      return inter
-    })
-
-    expect(loaded).toEqual([
-      { family: 'Inter', weight: 700, italic: false },
-      { family: 'Inter', weight: 400, italic: false }
+    const embedding = planFontEmbedding([
+      { family: 'Inter', style: 'Regular', data: inter },
+      { family: 'Inter', style: 'Bold', data: inter }
     ])
-    expect(report).toEqual({ embedded: ['Inter 700', 'Inter 400'], fallback: [] })
-    expect(fonts).toHaveLength(2)
+    const alias = embeddedFontAlias(embedding)
+
+    expect(registerEmbeddedFonts(doc, embedding)).toBe(true)
+    expect(embedding.report).toEqual({ embedded: ['Inter Regular', 'Inter Bold'], fallback: [] })
     expect(files.size).toBe(2)
     expect(fonts.every((font) => font.style === 'normal')).toBe(true)
-    // The child reads its face before its parent is renamed, and names its own font.
-    expect(bold.getAttribute('font-family')).toBe(heading.getAttribute('font-family'))
-    expect(body.getAttribute('font-family')).not.toBe(heading.getAttribute('font-family'))
-    for (const element of [heading, body, bold]) {
-      expect(element.getAttribute('font-family')).toMatch(/^[A-Za-z0-9]+$/)
-      expect(element.getAttribute('font-weight')).toBe('normal')
-      expect(element.getAttribute('font-style')).toBe('normal')
-    }
+    const regular = expectDefined(alias('Inter', 'Regular'), 'Regular alias')
+    const bold = expectDefined(alias('Inter', 'Bold'), 'Bold alias')
+    expect(regular).toMatch(/^[A-Za-z0-9]+$/)
+    expect(bold).not.toBe(regular)
+    expect(fonts.map((font) => font.family)).toEqual([regular, bold])
+    expect(alias('Inter', 'Italic')).toBeNull()
   })
 
-  test('falls back to a standard font when a face cannot be embedded, and says why', async () => {
+  test('falls back to a standard font when a face cannot be embedded, and says why', () => {
     const { doc, fonts } = pdfDoc()
-    const files: Record<string, ArrayBuffer | null> = {
-      Missing: null,
-      Variable: interVariable,
-      Cff: cff
-    }
-    const elements = Object.keys(files).map(
-      (family) => new Element({ 'font-family': family, 'font-style': 'italic' })
-    )
-    const failing = new Element({ 'font-family': 'Broken', 'font-weight': '300' })
-
-    const report = await embedFonts(doc, [svgRoot(...elements, failing)], async (face) => {
-      if (face.family === 'Broken') throw new Error('network error')
-      return files[face.family] ?? null
-    })
-
-    expect(fonts).toEqual([])
-    expect(report.embedded).toEqual([])
-    expect(report.fallback).toEqual([
-      { face: 'Missing 400 italic', reason: 'font file not available' },
-      { face: 'Variable 400 italic', reason: 'variable font' },
-      { face: 'Cff 400 italic', reason: 'not a TrueType font file' },
-      { face: 'Broken 300', reason: 'network error' }
+    const embedding = planFontEmbedding([
+      { family: 'Missing', style: 'Italic', data: null },
+      { family: 'Unsupported', style: 'Regular', data: null, missing: 'unsupported font format' },
+      { family: 'Variable', style: 'Italic', data: interVariable },
+      { family: 'Cff', style: 'Italic', data: cff }
     ])
-    expect(elements[1].getAttribute('font-family')).toBe('Variable')
-    expect(elements[1].getAttribute('font-style')).toBe('italic')
-    expect(failing.getAttribute('font-weight')).toBe('300')
+
+    expect(registerEmbeddedFonts(doc, embedding)).toBe(true)
+    expect(fonts).toEqual([])
+    expect(embedding.report).toEqual({
+      embedded: [],
+      fallback: [
+        { face: 'Missing Italic', reason: 'font file not available' },
+        { face: 'Unsupported Regular', reason: 'unsupported font format' },
+        { face: 'Variable Italic', reason: 'variable font' },
+        { face: 'Cff Italic', reason: 'not a TrueType font file' }
+      ]
+    })
+    expect(embeddedFontAlias(embedding)('Variable', 'Italic')).toBeNull()
   })
 
-  test('a face jsPDF rejects is reported as a fallback', async () => {
-    const element = new Element({ 'font-family': 'Inter' })
+  test('a face jsPDF rejects is dropped and reported as a fallback', () => {
     const doc: PDFFontTarget = {
       addFileToVFS: () => undefined,
       addFont: () => {
         throw new Error('Unsupported font')
       }
     }
-    const report = await embedFonts(doc, [svgRoot(element)], async () => inter)
-    expect(report).toEqual({
+    const embedding = planFontEmbedding([{ family: 'Inter', style: 'Regular', data: inter }])
+    const alias = embeddedFontAlias(embedding)
+    expect(alias('Inter', 'Regular')).not.toBeNull()
+
+    expect(registerEmbeddedFonts(doc, embedding)).toBe(false)
+    expect(embedding.report).toEqual({
       embedded: [],
-      fallback: [{ face: 'Inter 400', reason: 'Unsupported font' }]
+      fallback: [{ face: 'Inter Regular', reason: 'Unsupported font' }]
     })
-    expect(element.getAttribute('font-family')).toBe('Inter')
+    expect(alias('Inter', 'Regular')).toBeNull()
   })
 })

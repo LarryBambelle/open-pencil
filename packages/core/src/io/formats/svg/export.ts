@@ -2,6 +2,8 @@ import type { RenderColorSpace } from '@open-pencil/scene-graph/color'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
 import { computeContentBounds } from '#core/io/formats/raster'
+import type { FontFaceRef } from '#core/text/face'
+import { textFontFace } from '#core/text/requirements'
 
 import {
   nextDefId,
@@ -38,7 +40,7 @@ import type {
   CharacterStyleOverride
 } from '@open-pencil/scene-graph'
 
-import type { SVGExportContext } from './defs'
+import type { SVGExportContext, SVGFontAlias } from './defs'
 import { svg, renderSVGNode } from './node'
 import type { SVGNode } from './node'
 import { laidOutTextSpans, type SVGTextLayout } from './text-lines'
@@ -199,6 +201,23 @@ function styleOverrideToTspanAttrs(
   return attrs
 }
 
+/**
+ * Font attributes naming a face's alias, such as the family a PDF embeds its file under, or else
+ * the face itself, so text inside an aliased parent does not inherit the alias.
+ */
+function aliasedFontAttrs(
+  face: FontFaceRef,
+  fontAlias: SVGFontAlias
+): Record<string, string | number> {
+  const alias = fontAlias(face.family, face.style)
+  if (alias) return { 'font-family': alias, 'font-weight': 'normal', 'font-style': 'normal' }
+  return {
+    'font-family': face.family,
+    'font-weight': face.weight,
+    'font-style': face.italic ? 'italic' : 'normal'
+  }
+}
+
 function isLogicalTextEnd(node: SceneNode, direction: 'LTR' | 'RTL'): boolean {
   return (
     (direction === 'LTR' && node.textAlignHorizontal === 'RIGHT') ||
@@ -221,12 +240,8 @@ function textXForNode(node: SceneNode, direction: 'LTR' | 'RTL'): number {
   return 0
 }
 
-function renderTextNode(
-  node: SceneNode,
-  fillAttr: string | null,
-  colorSpace: 'srgb' | 'display-p3',
-  textLayout: SVGTextLayout | undefined
-): SVGNode {
+function renderTextNode(node: SceneNode, fillAttr: string | null, ctx: SVGExportContext): SVGNode {
+  const { colorSpace, textLayout, fontAlias } = ctx
   const direction = resolveNodeTextDirection(node)
   const lines = textLayout ? textLayout(node) : null
   const laidOut = lines && lines.length > 0 ? lines : null
@@ -247,14 +262,16 @@ function renderTextNode(
     direction: direction === 'RTL' ? 'rtl' : undefined,
     'text-anchor': textAnchor,
     'text-decoration': textDecoration,
-    'letter-spacing': node.letterSpacing ? round(node.letterSpacing) : undefined
+    'letter-spacing': node.letterSpacing ? round(node.letterSpacing) : undefined,
+    ...(fontAlias ? aliasedFontAttrs(textFontFace(node), fontAlias) : {})
   }
+  const spanAttrs = (style: CharacterStyleOverride) => ({
+    ...styleOverrideToTspanAttrs(style, colorSpace),
+    ...(fontAlias ? aliasedFontAttrs(textFontFace(node, style), fontAlias) : {})
+  })
 
   if (laidOut) {
-    const spans = laidOutTextSpans(node, laidOut, direction === 'RTL', (style) =>
-      styleOverrideToTspanAttrs(style, colorSpace)
-    )
-    return svg('text', attrs, ...spans)
+    return svg('text', attrs, ...laidOutTextSpans(node, laidOut, direction === 'RTL', spanAttrs))
   }
 
   const x = textXForNode(node, direction)
@@ -266,7 +283,7 @@ function renderTextNode(
     for (const run of node.styleRuns) {
       const text = node.text.slice(pos, pos + run.length)
       pos += run.length
-      spans.push(svg('tspan', styleOverrideToTspanAttrs(run.style, colorSpace), text))
+      spans.push(svg('tspan', spanAttrs(run.style), text))
     }
 
     return svg('text', { x, y, ...attrs }, ...spans)
@@ -414,7 +431,7 @@ function renderNode(node: SceneNode, ctx: SVGExportContext): SVGNode | null {
   if (node.type === 'TEXT') {
     const firstFill = node.fills.find((f) => f.visible)
     const fillAttr = firstFill ? resolveFill(firstFill, node, ctx) : null
-    const textEl = renderTextNode(node, fillAttr, ctx.colorSpace, ctx.textLayout)
+    const textEl = renderTextNode(node, fillAttr, ctx)
     return svg('g', groupAttrs, textEl)
   }
 
@@ -483,6 +500,11 @@ export interface SVGExportOptions {
    * line of SVG text, which renderers that do not wrap SVG text (such as PDF) keep on one line.
    */
   textLayout?: SVGTextLayout
+  /**
+   * A family to name a font face by instead of its own, such as the one a PDF embeds the face's
+   * file under. Text in an aliased face is written in that family at normal weight and style.
+   */
+  fontAlias?: SVGFontAlias
 }
 
 export function renderNodesToSVG(
@@ -503,7 +525,8 @@ export function renderNodesToSVG(
     defIdCounter: 0,
     graph,
     colorSpace: options.colorSpace ?? 'srgb',
-    textLayout: options.textLayout
+    textLayout: options.textLayout,
+    fontAlias: options.fontAlias
   }
 
   const contentNodes: SVGNode[] = []

@@ -24,6 +24,9 @@ import { svg, type SVGNode } from './node'
 import { round } from './paths'
 import type { SVGTextLayout } from './text-lines'
 
+/** The family to name a font face by instead of its own, or null to keep the face. */
+export type SVGFontAlias = (family: string, style: string) => string | null
+
 export interface SVGExportContext {
   defs: SVGNode[]
   defIdCounter: number
@@ -35,6 +38,7 @@ export interface SVGExportContext {
   tint?: (node: SceneNode) => readonly ('fill' | 'stroke')[]
   /** Line breaks of text nodes; without them each text node is drawn on one line. */
   textLayout?: SVGTextLayout
+  fontAlias?: SVGFontAlias
 }
 
 export function nextDefId(ctx: SVGExportContext, prefix: string): string {

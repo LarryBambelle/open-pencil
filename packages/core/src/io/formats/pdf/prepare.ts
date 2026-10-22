@@ -1,4 +1,4 @@
-import { weightToStyle, type SceneGraph } from '@open-pencil/scene-graph'
+import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { withTextShaper } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
@@ -9,7 +9,7 @@ import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 import { prepareGraphFonts } from '#core/text/prepare'
 
-import type { PDFFontLoader } from './fonts'
+import type { PDFFontFace } from './fonts'
 import type { PDFPageSpec } from './plan'
 
 /**
@@ -41,9 +41,17 @@ export async function preparePagesForPDF(
   return status
 }
 
-/** The font file of a face, from the same font manager the canvas draws with. */
-export const loadPDFFont: PDFFontLoader = (face) =>
-  fontManager.loadFont(face.family, weightToStyle(face.weight, face.italic))
+/** The faces the pages' text uses, with the files the canvas draws them from. */
+export function pdfFontFaces(status: DocumentFontStatus): PDFFontFace[] {
+  return status.faces.map((face) => {
+    const data =
+      face.status === 'available' ? fontManager.loadedData(face.family, face.style) : null
+    if (data) return { family: face.family, style: face.style, data }
+    const missing =
+      face.reason === 'unsupported-format' ? 'unsupported font format' : 'font file not available'
+    return { family: face.family, style: face.style, data, missing }
+  })
+}
 
 /**
  * Runs `render` with the line breaks the canvas gives each text node (same paragraph builder and
