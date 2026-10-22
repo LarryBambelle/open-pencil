@@ -3,7 +3,7 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { withTextShaper } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
-import { populateAllFigPages } from '#core/io/formats/fig'
+import { populateFigPage } from '#core/io/formats/fig'
 import type { SVGCharacterEdges, SVGTextLayout } from '#core/io/formats/svg'
 import { computeAllLayouts } from '#core/layout'
 import type { DocumentFontStatus } from '#core/text/font/status'
@@ -28,15 +28,23 @@ export function preparePDFFonts(
 }
 
 /**
- * Design pages other than the open one may still be unread (.fig pages load on demand) and have
- * no layout yet. Read them, load the fonts their text needs, and lay them out, so every PDF page
- * is complete.
+ * Design pages other than the open one may still be unread, since `.fig` pages load on demand.
+ * Reads the pages a `pages` export asks for, or every page, so planning sees their layers.
+ */
+export function readPDFPages(graph: SceneGraph, pageIds?: readonly string[]): void {
+  for (const pageId of pageIds ?? graph.getPages().map((page) => page.id)) {
+    populateFigPage(graph, pageId)
+  }
+}
+
+/**
+ * Loads the fonts the text of pages read by {@link readPDFPages} needs and lays them out, since
+ * pages other than the open one have no layout yet, so every PDF page is complete.
  */
 export async function preparePagesForPDF(
   graph: SceneGraph,
   specs: readonly PDFPageSpec[]
 ): Promise<DocumentFontStatus> {
-  populateAllFigPages(graph)
   const status = await preparePDFFonts(graph, specs)
   for (const spec of specs) computeAllLayouts(graph, spec.pageId)
   return status

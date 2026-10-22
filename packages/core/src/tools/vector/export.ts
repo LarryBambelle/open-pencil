@@ -123,6 +123,7 @@ export const exportPDF = defineTool({
       import('#core/io/formats/pdf/prepare')
     ])
     try {
+      if (args.mode === 'pages') pdfPrepare.readPDFPages(figma.graph, args.page_ids)
       const specs = planPDFPages(figma.graph, {
         mode: args.mode,
         ids: args.ids,
