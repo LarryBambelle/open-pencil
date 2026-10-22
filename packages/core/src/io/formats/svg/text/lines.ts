@@ -2,6 +2,7 @@ import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph
 
 import { svg, type SVGNode } from '#core/io/formats/svg/node'
 import { round } from '#core/io/formats/svg/paths'
+import { shownTextSlice } from '#core/text/case'
 
 /**
  * One line of a text node as the editor laid it out: the characters of `node.text` it holds
@@ -67,13 +68,13 @@ function spanEdges(line: SVGTextLine, from: number, to: number): SVGCharacterEdg
 }
 
 function lineSpans(
-  text: string,
+  node: SceneNode,
   pieces: readonly TextPiece[],
   line: SVGTextLine,
   spanAttrs: SpanAttrs
 ): SVGNode[] {
   // The newline that ends a line is not drawn.
-  const end = text[line.end - 1] === '\n' ? line.end - 1 : line.end
+  const end = node.text[line.end - 1] === '\n' ? line.end - 1 : line.end
   const y = round(line.y)
   const spans: SVGNode[] = []
   for (const piece of pieces) {
@@ -86,14 +87,15 @@ function lineSpans(
     // a line starts at the line's left edge, and the rest follow on from it.
     const left = spanEdges(line, from, to)?.left ?? (spans.length === 0 ? line.x : null)
     const position = left === null ? {} : { x: round(left), y }
-    spans.push(svg('tspan', { ...position, ...attrs }, text.slice(from, to)))
+    spans.push(svg('tspan', { ...position, ...attrs }, shownTextSlice(node, from, to)))
   }
   return spans
 }
 
 /**
  * One `tspan` per style run on each laid-out line, the first of a line at its own baseline, so a
- * wrapped paragraph keeps the editor's line breaks in renderers that do not wrap SVG text.
+ * wrapped paragraph keeps the editor's line breaks in renderers that do not wrap SVG text. Each
+ * span holds its characters in the case they are shown in.
  */
 export function laidOutTextSpans(
   node: SceneNode,
@@ -101,5 +103,5 @@ export function laidOutTextSpans(
   spanAttrs: SpanAttrs
 ): SVGNode[] {
   const pieces = textPieces(node)
-  return lines.flatMap((line) => lineSpans(node.text, pieces, line, spanAttrs))
+  return lines.flatMap((line) => lineSpans(node, pieces, line, spanAttrs))
 }

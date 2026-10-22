@@ -66,3 +66,23 @@ test('a style run that starts mid-word is placed where the canvas draws its firs
   expect(spans).toHaveLength(2)
   expect(spans.every((span) => / x="[\d.]+"/.test(span))).toBe(true)
 })
+
+test('text whose case changes its length is kept on one line, in that case', async () => {
+  const graph = new SceneGraph()
+  const pageId = graph.getPages()[0].id
+  const node = graph.createNode('TEXT', pageId, {
+    text: 'Straße',
+    textCase: 'UPPER',
+    fontFamily: 'Inter',
+    fontSize: 20,
+    width: 200,
+    height: 24
+  })
+
+  const svg = await withPDFTextLayout(async (textLayout) => {
+    expect(textLayout?.(node)).toBeNull()
+    return renderNodesToSVG(graph, pageId, [node.id], { xmlDeclaration: false, textLayout })
+  })
+
+  expect(expectDefined(svg, 'SVG')).toContain('>STRASSE</text>')
+})

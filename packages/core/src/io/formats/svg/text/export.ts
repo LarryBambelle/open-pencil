@@ -5,6 +5,7 @@ import { formatColor, type SVGExportContext, type SVGFontAlias } from '#core/io/
 import { svg, type SVGNode } from '#core/io/formats/svg/node'
 import { round } from '#core/io/formats/svg/paths'
 import { laidOutTextSpans } from '#core/io/formats/svg/text/lines'
+import { shownText, shownTextSlice } from '#core/text/case'
 import type { FontFaceRef } from '#core/text/face'
 import { textFontFace } from '#core/text/requirements'
 
@@ -116,7 +117,7 @@ export function renderTextNode(
     const spans: SVGNode[] = []
     let pos = 0
     for (const run of node.styleRuns) {
-      const text = node.text.slice(pos, pos + run.length)
+      const text = shownTextSlice(node, pos, pos + run.length)
       pos += run.length
       spans.push(svg('tspan', spanAttrs(run.style), text))
     }
@@ -124,5 +125,5 @@ export function renderTextNode(
     return svg('text', { x, y, ...attrs }, ...spans)
   }
 
-  return svg('text', { x, y, ...attrs }, node.text)
+  return svg('text', { x, y, ...attrs }, shownText(node))
 }

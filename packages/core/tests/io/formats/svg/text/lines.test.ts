@@ -120,4 +120,36 @@ describe('SVG text with laid-out lines', () => {
       '<tspan x="90" y="18">א</tspan><tspan x="70" y="18" font-weight="700">בג</tspan>'
     )
   })
+
+  test('laid-out lines hold the text in the case it is shown in', () => {
+    const svg = exportText(
+      {
+        text: 'quiet loud',
+        textCase: 'TITLE',
+        styleRuns: [{ start: 6, length: 4, style: { textCase: 'UPPER' } }]
+      },
+      [
+        { start: 0, end: 6, x: 0, y: 18, width: 50 },
+        { start: 6, end: 10, x: 0, y: 42, width: 50 }
+      ]
+    )
+    expect(svg).toContain('>Quiet </tspan>')
+    expect(svg).toContain('>LOUD</tspan>')
+  })
+})
+
+describe('SVG text case', () => {
+  test('text on one line is written in the case it is shown in', () => {
+    expect(exportText({ text: 'Mixed Case', textCase: 'UPPER' })).toContain('>MIXED CASE</text>')
+    const runs = exportText({
+      text: 'Mixed Case',
+      textCase: 'UPPER',
+      styleRuns: [
+        { start: 0, length: 6, style: {} },
+        { start: 6, length: 4, style: { textCase: 'LOWER' } }
+      ]
+    })
+    expect(runs).toContain('>MIXED </tspan>')
+    expect(runs).toContain('>case</tspan>')
+  })
 })

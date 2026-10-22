@@ -6,6 +6,7 @@ import { getCanvasKit } from '#core/canvaskit'
 import { populateFigPage } from '#core/io/formats/fig'
 import type { SVGCharacterEdges, SVGTextLayout } from '#core/io/formats/svg'
 import { computeAllLayouts } from '#core/layout'
+import { shownText } from '#core/text/case'
 import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 import { prepareGraphFonts } from '#core/text/prepare'
@@ -76,6 +77,8 @@ export async function withPDFTextLayout<T>(
   if (!ck) return render(undefined)
   return withTextShaper(ck, (shape) =>
     render((node) => {
+      // Shaped lines are cut by character index, which the text's case must keep.
+      if (shownText(node).length !== node.text.length) return null
       const shaped = shape(node)
       if (!shaped?.baselines.length) return null
       const characters = characterEdges(shaped.glyphs)
