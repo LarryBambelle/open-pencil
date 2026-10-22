@@ -190,23 +190,35 @@ function needsShaping(graph: SceneGraph): boolean {
   return false
 }
 
+/** How many shaping calls share each provider made for them; the last one to finish deletes it. */
+const shaperProviderUsers = new Map<TypefaceFontProvider, number>()
+
 /**
  * Run `use` with text shaped as the canvas lays it out. Unless the attached font provider belongs
- * to this CanvasKit, the loaded fonts are registered in one that lives for this call only.
+ * to this CanvasKit, the loaded fonts are registered in one made for shaping, which calls that
+ * overlap share and the last of them deletes.
  */
 export async function withTextShaper<T>(
   canvasKit: CanvasKit,
   use: (shape: (node: SceneNode) => ShapedText | null) => Promise<T>
 ): Promise<T> {
-  const reusable = fontManager.providerFor(canvasKit)
-  const provider = reusable ?? canvasKit.TypefaceFontProvider.Make()
-  if (!reusable) fontManager.attachProvider(canvasKit, provider)
+  const attached = fontManager.providerFor(canvasKit)
+  const provider = attached ?? canvasKit.TypefaceFontProvider.Make()
+  if (!attached) fontManager.attachProvider(canvasKit, provider)
+  const shared = !attached || shaperProviderUsers.has(provider)
+  if (shared) shaperProviderUsers.set(provider, (shaperProviderUsers.get(provider) ?? 0) + 1)
   try {
     return await use((node) => shapeText(canvasKit, provider, node))
   } finally {
-    if (!reusable) {
-      fontManager.detachProvider(provider)
-      provider.delete()
+    if (shared) {
+      const users = (shaperProviderUsers.get(provider) ?? 1) - 1
+      if (users > 0) {
+        shaperProviderUsers.set(provider, users)
+      } else {
+        shaperProviderUsers.delete(provider)
+        fontManager.detachProvider(provider)
+        provider.delete()
+      }
     }
   }
 }
