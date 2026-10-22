@@ -2,12 +2,10 @@
 import type { Canvas, Path } from 'canvaskit-wasm'
 
 import { type SceneNode, type SceneGraph, type Fill } from '@open-pencil/scene-graph'
-import type { ArrowEndpoint } from '@open-pencil/scene-graph/arrow-caps'
 import {
   arrowCapOverflow,
   collectArrowEndpoints,
   hasTrimmedShaft,
-  lineArrowEndpoints,
   trimArrowShafts
 } from '@open-pencil/scene-graph/arrow-caps'
 import Matrix from '@open-pencil/scene-graph/matrix'
@@ -39,7 +37,6 @@ import {
 import { mapVisualBounds, subtreeVisualBounds } from './renderer/visual-bounds'
 import { renderLayerShadows } from './shadows'
 import { isLayerContainer } from './shadows/silhouette'
-import { makeSmoothRRectPath, nodeHasRadius, nodeHasSmoothCorners } from './shapes'
 import {
   configureStrokePaint,
   drawArrowHeads,
@@ -50,6 +47,7 @@ import {
   getStrokeJoinEntity,
   normalizeDashPattern
 } from './strokes'
+import { drawLineStroke } from './strokes/line'
 import { drawOutlinedDashes } from './strokes/outlined-dashes'
 import { drawDashedRectStroke, strokeDashesByOutline, strokeSideWeights } from './strokes/sides'
 import { textVerticalOffset, withTextParagraph } from './text'
@@ -240,15 +238,7 @@ function renderChildren(
     node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE'
   if (isClippableContainer && node.clipsContent && node.childIds.length > 0) {
     canvas.save()
-    if (nodeHasSmoothCorners(node)) {
-      const clipPath = makeSmoothRRectPath(r, node)
-      canvas.clipPath(clipPath, r.ck.ClipOp.Intersect, true)
-      clipPath.delete()
-    } else if (nodeHasRadius(node)) {
-      canvas.clipRRect(r.makeRRect(node), r.ck.ClipOp.Intersect, true)
-    } else {
-      canvas.clipRect(r.ck.LTRBRect(0, 0, node.width, node.height), r.ck.ClipOp.Intersect, true)
-    }
+    r.clipNodeShape(canvas, node)
     renderChildIds(r, canvas, graph, node.childIds, overlays, absX, absY, hasTransformedAncestor)
     canvas.restore()
   } else {
@@ -754,8 +744,6 @@ function drawRegularStroke(
   r: SkiaRenderer,
   canvas: Canvas,
   node: SceneNode,
-  rect: Float32Array,
-  hasRadius: boolean,
   stroke: SceneNode['strokes'][0],
   sc: Color
 ): void {
@@ -766,7 +754,7 @@ function drawRegularStroke(
   if (node.independentStrokeWeights && r.isRectangularType(node.type)) {
     r.drawIndividualSideStrokes(canvas, node, stroke)
   } else if (!r.isRectangularType(node.type) || !drawFigmaDashes(r, canvas, node, stroke)) {
-    r.drawStrokeWithAlign(canvas, node, rect, hasRadius, stroke.align)
+    r.drawStrokeWithAlign(canvas, node, stroke.align)
   }
 }
 
@@ -774,8 +762,6 @@ function drawNodeStroke(
   r: SkiaRenderer,
   canvas: Canvas,
   node: SceneNode,
-  rect: Float32Array,
-  hasRadius: boolean,
   stroke: SceneNode['strokes'][0],
   sc: Color,
   sg: Path[] | null,
@@ -797,13 +783,13 @@ function drawNodeStroke(
     if (vectorPaths) {
       const outlineKey = strokeOutlineKey(node, stroke, 'regions')
       drawVectorPathStrokes(r, canvas, vectorPaths, stroke, sc, node.strokeMiterLimit, outlineKey)
-    } else drawRegularStroke(r, canvas, node, rect, hasRadius, stroke, sc)
+    } else drawRegularStroke(r, canvas, node, stroke, sc)
     return
   }
   if (stroke.align !== 'INSIDE') {
     if (node.type === 'VECTOR' || node.type === 'TEXT') {
       drawVectorStrokeGeometry(r, canvas, sg, sc, stroke.opacity)
-    } else drawRegularStroke(r, canvas, node, rect, hasRadius, stroke, sc)
+    } else drawRegularStroke(r, canvas, node, stroke, sc)
     return
   }
 
@@ -817,7 +803,7 @@ function drawNodeStroke(
   if (clipPaths) {
     for (const path of clipPaths) canvas.clipPath(path, r.ck.ClipOp.Intersect, true)
   } else {
-    r.clipNodeShape(canvas, node, rect, hasRadius)
+    r.clipNodeShape(canvas, node)
   }
   drawVectorStrokeGeometry(r, canvas, sg, sc, stroke.opacity)
   canvas.restore()
@@ -833,9 +819,9 @@ function isPathTextWithStrokeGeometry(node: SceneNode): boolean {
 }
 
 /**
- * Draws arrow-cap heads for a stroke on the node types that carry open path
- * ends. Runs after the shaft regardless of which branch painted it, so heads
- * survive fills, non-center alignment, corner radii, and dashed shafts.
+ * Draws arrow-cap heads for a stroke on a vector's open path ends. Runs after the shaft
+ * regardless of which branch painted it, so heads survive fills, non-center alignment, corner
+ * radii, and dashed shafts.
  */
 function drawNodeArrowHeads(
   r: SkiaRenderer,
@@ -844,13 +830,8 @@ function drawNodeArrowHeads(
   stroke: SceneNode['strokes'][0],
   color: Color
 ): void {
-  const cap = stroke.cap ?? node.strokeCap
-  let endpoints: ArrowEndpoint[] = []
-  if (node.type === 'LINE') {
-    endpoints = lineArrowEndpoints(node.width, node.height, cap)
-  } else if (node.type === 'VECTOR' && node.vectorNetwork) {
-    endpoints = collectArrowEndpoints(node.vectorNetwork, cap)
-  }
+  if (node.type !== 'VECTOR' || !node.vectorNetwork) return
+  const endpoints = collectArrowEndpoints(node.vectorNetwork, stroke.cap ?? node.strokeCap)
   if (endpoints.length > 0) {
     drawArrowHeads(r, canvas, endpoints, stroke.weight, color, stroke.opacity)
   }
@@ -861,13 +842,15 @@ function paintNodeStrokes(
   canvas: Canvas,
   node: SceneNode,
   graph: SceneGraph,
-  rect: Float32Array,
-  hasRadius: boolean,
   sg: Path[] | null,
   vectorPaths: Path[] | null,
   vectorStroke: Path[] | null
 ): void {
   forVisibleStrokes(r, node, graph, (stroke, color) => {
+    if (node.type === 'LINE') {
+      drawLineStroke(r, canvas, node, stroke, color)
+      return
+    }
     if (
       stroke.dashPattern &&
       stroke.dashPattern.length > 0 &&
@@ -897,7 +880,7 @@ function paintNodeStrokes(
       drawNodeArrowHeads(r, canvas, node, stroke, color)
       return
     }
-    drawNodeStroke(r, canvas, node, rect, hasRadius, stroke, color, sg, vectorPaths, vectorStroke)
+    drawNodeStroke(r, canvas, node, stroke, color, sg, vectorPaths, vectorStroke)
     drawNodeArrowHeads(r, canvas, node, stroke, color)
   })
 }
@@ -909,13 +892,9 @@ export function renderShapeUncached(
   node: SceneNode,
   graph: SceneGraph
 ): void {
-  const rect = r.ck.LTRBRect(0, 0, node.width, node.height)
-  const hasRadius = nodeHasRadius(node)
-  r.renderEffects(canvas, node, graph, rect, hasRadius, 'behind')
-  paintShapeContent(r, canvas, node, graph, () =>
-    r.renderEffects(canvas, node, graph, rect, hasRadius, 'inner')
-  )
-  r.renderEffects(canvas, node, graph, rect, hasRadius, 'front')
+  r.renderEffects(canvas, node, graph, 'behind')
+  paintShapeContent(r, canvas, node, graph, () => r.renderEffects(canvas, node, graph, 'inner'))
+  r.renderEffects(canvas, node, graph, 'front')
 }
 
 /** Draws a shape's fills and strokes without its effects; `afterFills` runs between the two. */
@@ -926,8 +905,6 @@ export function paintShapeContent(
   graph: SceneGraph,
   afterFills?: () => void
 ): void {
-  const rect = r.ck.LTRBRect(0, 0, node.width, node.height)
-  const hasRadius = nodeHasRadius(node)
   const sg = node.strokeGeometry.length > 0 ? r.getStrokeGeometry(node) : null
   const vectorPaths = node.type === 'VECTOR' ? r.getVectorPaths(node) : null
   const vectorStroke = node.type === 'VECTOR' ? vectorStrokePaths(r, node) : null
@@ -935,7 +912,7 @@ export function paintShapeContent(
   const reflowedPathText = isReflowedPathText(node)
 
   if (pathTextStrokeFirst) {
-    paintNodeStrokes(r, canvas, node, graph, rect, hasRadius, sg, vectorPaths, vectorStroke)
+    paintNodeStrokes(r, canvas, node, graph, sg, vectorPaths, vectorStroke)
   }
   if (reflowedPathText) {
     forVisibleStrokes(r, node, graph, (stroke, color) =>
@@ -944,13 +921,13 @@ export function paintShapeContent(
   }
 
   if (!drawVectorMultiStyleFills(r, canvas, node, graph)) {
-    drawVisibleFills(r, node, graph, (fill) => r.drawNodeFill(canvas, node, rect, hasRadius, fill))
+    drawVisibleFills(r, node, graph, (fill) => r.drawNodeFill(canvas, node, fill))
   }
   if (node.type === 'TEXT') drawTextEmoji(r, canvas, node)
   afterFills?.()
 
   if (!pathTextStrokeFirst && !reflowedPathText) {
-    paintNodeStrokes(r, canvas, node, graph, rect, hasRadius, sg, vectorPaths, vectorStroke)
+    paintNodeStrokes(r, canvas, node, graph, sg, vectorPaths, vectorStroke)
   }
 }
 

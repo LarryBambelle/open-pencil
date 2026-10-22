@@ -16,8 +16,8 @@ async function createRenderer(): Promise<SkiaRenderer> {
   const ck = await initCanvasKit()
   const renderer = {
     ck,
-    makeNodeShapePath(node, rect, hasRadius) {
-      return makeNodeShapePath(asRenderer(this), node, rect, hasRadius)
+    makeNodeShapePath(node) {
+      return makeNodeShapePath(asRenderer(this), node)
     },
     makePolygonPath(node) {
       return makePolygonPath(asRenderer(this), node)
@@ -26,6 +26,9 @@ async function createRenderer(): Promise<SkiaRenderer> {
       return makeRRect(asRenderer(this), node)
     },
     getVectorPaths() {
+      return null
+    },
+    getFillGeometry() {
       return null
     }
   } satisfies Partial<SkiaRenderer>
@@ -163,8 +166,9 @@ describe('boolean operation paths', () => {
     const path = makeBooleanOperationPath(r, node, api.graph)
     const bounds = path?.getBounds()
 
-    expect(bounds?.[2]).toBeGreaterThan(145)
-    expect(bounds?.[3]).toBeGreaterThan(100)
+    // A line is stroked to its upper side, so the outline reaches past it to the right.
+    expect(bounds?.[2]).toBeGreaterThan(150)
+    expect(bounds?.[3]).toBeCloseTo(100, 3)
     path?.delete()
   })
 
