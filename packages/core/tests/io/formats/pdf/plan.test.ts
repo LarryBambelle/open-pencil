@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import { FigmaAPI } from '@open-pencil/core'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
+import { FigmaAPI } from '#core/figma-api'
 import { MAX_PDF_PAGES, PDFPlanError, planPDFPages } from '#core/io/formats/pdf/plan'
 
 /** Page "Cards" (Front, Back, hidden Draft), page "Posters" (Poster), empty page "Blank". */
