@@ -1,0 +1,1 @@
+- `open-pencil export --node` checks the fonts of a text layer exported on its own: `--font-policy strict` and `warn` used to find no fonts to check and let a substituted face through.
