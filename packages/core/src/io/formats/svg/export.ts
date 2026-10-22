@@ -43,7 +43,7 @@ import type {
 import type { SVGExportContext, SVGFontAlias } from './defs'
 import { svg, renderSVGNode } from './node'
 import type { SVGNode } from './node'
-import { laidOutTextSpans, type SVGTextLayout } from './text-lines'
+import { laidOutTextSpans, type SVGTextLayout } from './text/lines'
 
 // --- Node rendering ---
 

@@ -1,7 +1,7 @@
 import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph'
 
-import { svg, type SVGNode } from './node'
-import { round } from './paths'
+import { svg, type SVGNode } from '#core/io/formats/svg/node'
+import { round } from '#core/io/formats/svg/paths'
 
 /**
  * One line of a text node as the editor laid it out: the characters of `node.text` it holds

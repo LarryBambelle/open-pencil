@@ -22,7 +22,7 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import { svg, type SVGNode } from './node'
 import { round } from './paths'
-import type { SVGTextLayout } from './text-lines'
+import type { SVGTextLayout } from './text/lines'
 
 /** The family to name a font face by instead of its own, or null to keep the face. */
 export type SVGFontAlias = (family: string, style: string) => string | null
