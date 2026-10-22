@@ -130,7 +130,7 @@ export const exportPDF = defineTool({
         currentPageId: figma.currentPageId
       })
       if (args.mode === 'pages') await pdfPrepare.preparePagesForPDF(figma.graph, specs)
-      else await pdfPrepare.loadPDFPageFonts(figma.graph, specs)
+      else await pdfPrepare.preparePDFFonts(figma.graph, specs)
       const fonts = args.embed_fonts ? pdfPrepare.loadPDFFont : undefined
       const result = await pdfPrepare.withPDFTextLayout((textLayout) =>
         renderPagesToPDFDetailed(figma.graph, specs, { fonts, textLayout })

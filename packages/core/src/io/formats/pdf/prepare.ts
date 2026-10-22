@@ -5,20 +5,25 @@ import { getCanvasKit } from '#core/canvaskit'
 import { populateAllFigPages } from '#core/io/formats/fig'
 import type { SVGTextLayout } from '#core/io/formats/svg'
 import { computeAllLayouts } from '#core/layout'
+import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
+import { prepareGraphFonts } from '#core/text/prepare'
 
 import type { PDFFontLoader } from './fonts'
 import type { PDFPageSpec } from './plan'
 
-/** Loads the fonts the text of these pages needs. */
-export async function loadPDFPageFonts(
+/**
+ * Loads every font the text of these pages draws with, as the canvas does: the faces, the
+ * characters remote fonts must cover, and the script and emoji fallbacks.
+ */
+export function preparePDFFonts(
   graph: SceneGraph,
   specs: readonly PDFPageSpec[]
-): Promise<void> {
-  for (const spec of specs) {
-    const keys = fontManager.collectFontKeys(graph, spec.nodeIds)
-    await Promise.all(keys.map(([family, style]) => fontManager.loadFont(family, style)))
-  }
+): Promise<DocumentFontStatus> {
+  return prepareGraphFonts(
+    graph,
+    specs.flatMap((spec) => spec.nodeIds)
+  )
 }
 
 /**
@@ -29,10 +34,11 @@ export async function loadPDFPageFonts(
 export async function preparePagesForPDF(
   graph: SceneGraph,
   specs: readonly PDFPageSpec[]
-): Promise<void> {
+): Promise<DocumentFontStatus> {
   populateAllFigPages(graph)
-  await loadPDFPageFonts(graph, specs)
+  const status = await preparePDFFonts(graph, specs)
   for (const spec of specs) computeAllLayouts(graph, spec.pageId)
+  return status
 }
 
 /** The font file of a face, from the same font manager the canvas draws with. */
