@@ -1,3 +1,5 @@
+import { omitBy } from 'es-toolkit/object'
+
 import {
   setInstanceOverride,
   type Color,
@@ -16,47 +18,18 @@ import {
   componentPropertyScope,
   inferComponentSetProperties
 } from './component-properties'
-import { applySizeOverrides, propsToOverrides } from './props-overrides'
+import { CONNECTOR_ELEMENT, resolveConnectorEnds } from './connectors'
+import { elementNodeType, elementOwnLayer, type OwnLayerRenderer } from './elements'
+import { applySizeOverrides, propsToOverrides, shapeOverrides } from './props-overrides'
+import { LayerRefs } from './refs'
 import { prepareScalarBindings } from './scalar-bindings'
 import type { DesignJSXServices } from './services'
 import { isTextContent, TEXT_CONTENT_NAMES, textContentFields } from './text-content'
 import { FRAGMENT, isTreeNode } from './tree'
 import type { TreeNode } from './tree'
 import type { RenderOptions } from './types'
+import { readElementProps } from './validation'
 import { isVariable, resolveVariableId, type DesignVariable } from './vars'
-
-const TYPE_MAP: Partial<Record<string, NodeType>> = {
-  frame: 'FRAME',
-  view: 'FRAME',
-  rectangle: 'RECTANGLE',
-  rect: 'RECTANGLE',
-  ellipse: 'ELLIPSE',
-  text: 'TEXT',
-  line: 'LINE',
-  star: 'STAR',
-  polygon: 'POLYGON',
-  vector: 'VECTOR',
-  group: 'GROUP',
-  section: 'SECTION',
-  component: 'COMPONENT',
-  'component-set': 'COMPONENT_SET',
-  componentset: 'COMPONENT_SET',
-  div: 'FRAME',
-  main: 'FRAME',
-  header: 'FRAME',
-  footer: 'FRAME',
-  nav: 'FRAME',
-  article: 'FRAME',
-  aside: 'FRAME',
-  span: 'TEXT',
-  p: 'TEXT',
-  h1: 'TEXT',
-  h2: 'TEXT',
-  h3: 'TEXT',
-  h4: 'TEXT',
-  h5: 'TEXT',
-  h6: 'TEXT'
-}
 
 export interface RenderResult {
   id: string
@@ -85,21 +58,30 @@ export async function renderRoots<Artwork>(
   const parentId = options.parentId ?? graph.getPages()[0].id
 
   const nodes: SceneNode[] = []
+  const connectors: Array<{ node: SceneNode; tree: TreeNode }> = []
+  const refs = new LayerRefs()
+  const onNode = (element: TreeNode, node: SceneNode) => {
+    if (element.type === CONNECTOR_ELEMENT) connectors.push({ node, tree: element })
+    else refs.mark(element.props.ref, node)
+    options.onNode?.(element, node)
+  }
   for (const root of roots) {
-    const node = await renderNode(services, graph, root, parentId, options.onNode)
+    const node = await renderNode(services, graph, root, parentId, onNode)
     if (options.x !== undefined) graph.updateNode(node.id, { x: options.x })
     if (options.y !== undefined) graph.updateNode(node.id, { y: options.y })
     nodes.push(node)
   }
 
   const rootIds = nodes.map((node) => node.id)
+  const warnings = [...refs.warnings, ...resolveConnectorEnds(graph, rootIds, connectors, refs)]
   if (!options.deferLayout) services.layout(graph, rootIds)
 
   return nodes.map((node) => ({
     id: node.id,
     name: node.name,
     type: node.type,
-    childIds: node.childIds
+    childIds: node.childIds,
+    ...(warnings.length > 0 && { warnings })
   }))
 }
 
@@ -209,6 +191,30 @@ function preparePropsForRender(
   }
 
   return { props, bindings }
+}
+
+/**
+ * An element that draws its own layer. Its props are resolved as any layer's are, so a
+ * `designVar()` binds, and its layer props become fields as any layer's do; the element reads the
+ * rest itself.
+ */
+function renderOwnLayerElement(
+  graph: SceneGraph,
+  tree: TreeNode,
+  parentId: string,
+  element: OwnLayerRenderer
+): SceneNode {
+  const { props, bindings } = preparePropsForRender(graph, tree.props, false, parentId)
+  const parentLayout = graph.getNode(parentId)?.layoutMode ?? 'NONE'
+  const layer = omitBy(
+    propsToOverrides(readElementProps(element.layer, props), false, parentLayout),
+    (value) => value === undefined
+  )
+  const node = element.render(graph, { ...tree, props }, parentId, layer)
+  for (const [field, variableId] of Object.entries(bindings)) {
+    graph.bindVariable(element.bindingTarget?.(graph, node, field) ?? node.id, field, variableId)
+  }
+  return node
 }
 
 function applyBindings(graph: SceneGraph, nodeId: string, bindings: Record<string, string>): void {
@@ -478,6 +484,7 @@ export function elementOverrides(
   const { props, bindings } = preparePropsForRender(graph, tree.props, isText, parentId)
   const overrides = {
     ...propsToOverrides(props, isText, parentLayout),
+    ...shapeOverrides(nodeType, props),
     ...componentMetadata(props, nodeType, componentPropertyScope(graph, parentId))
   }
 
@@ -503,6 +510,29 @@ async function renderNode<Artwork>(
   return node
 }
 
+/**
+ * The elements rendered their own way rather than as the layer their definition names, or null
+ * for any other element.
+ */
+function renderOwnElement<Artwork>(
+  services: DesignJSXServices<Artwork>,
+  graph: SceneGraph,
+  tree: TreeNode,
+  parentId: string
+): Promise<SceneNode> | null {
+  switch (tree.type) {
+    case 'icon':
+    case 'svg':
+      return renderArtworkNode(services, graph, tree, parentId)
+    case 'instance':
+      return renderInstanceNode(graph, tree, parentId)
+    default: {
+      const element = elementOwnLayer(tree.type)
+      return element ? Promise.resolve(renderOwnLayerElement(graph, tree, parentId, element)) : null
+    }
+  }
+}
+
 async function renderNodeContent<Artwork>(
   services: DesignJSXServices<Artwork>,
   graph: SceneGraph,
@@ -511,9 +541,8 @@ async function renderNodeContent<Artwork>(
   onNode?: RenderOptions['onNode'],
   scope?: RekaScope
 ): Promise<SceneNode> {
-  if (tree.type === 'icon' || tree.type === 'svg')
-    return renderArtworkNode(services, graph, tree, parentId)
-  if (tree.type === 'instance') return renderInstanceNode(graph, tree, parentId)
+  const own = renderOwnElement(services, graph, tree, parentId)
+  if (own) return own
   const reka = await renderRekaNode(graph, tree, parentId, scope, {
     render: (child, childParentId, childScope) =>
       renderNode(services, graph, child, childParentId, onNode, childScope),
@@ -530,7 +559,7 @@ async function renderNodeContent<Artwork>(
 
   if (isTextContent(tree))
     throw new Error(`<${TEXT_CONTENT_NAMES[tree.type]}> must be inside <Text>`)
-  const nodeType = TYPE_MAP[tree.type]
+  const nodeType = elementNodeType(tree.type)
   if (!nodeType) throw new Error(`Unknown element: <${tree.type}>`)
 
   const { overrides, bindings } = elementOverrides(graph, nodeType, tree, parentId)

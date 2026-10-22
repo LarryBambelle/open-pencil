@@ -16,6 +16,9 @@ const TOOL_SHORTCUT_KEYS: Readonly<Record<Tool, string>> = {
   PEN: 'P',
   PENCIL: 'SHIFT+P',
   TEXT: 'T',
+  STICKY: '',
+  SHAPE_WITH_TEXT: '',
+  CONNECTOR: '',
   HAND: 'H',
   COMMENT: 'C'
 }

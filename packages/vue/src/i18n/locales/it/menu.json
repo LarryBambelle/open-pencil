@@ -7,11 +7,9 @@
   "text": "Testo",
   "new": "Nuovo",
   "open": "Apri…",
-  "openStorageWorkspace": "Apri area di archiviazione…",
   "openTour": "Apri il tour",
   "save": "Salva",
   "saveAs": "Salva con nome…",
-  "saveToStorage": "Salva nell’area di archiviazione…",
   "exportSelection": "Esporta selezione…",
   "autosave": "Salvataggio automatico su file",
   "copy": "Copia",
@@ -39,6 +37,8 @@
   "underline": "Sottolineato",
   "pasteHere": "Incolla qui",
   "pasteToReplace": "Incolla per sostituire",
+  "copyProperties": "Copia proprietà",
+  "pasteProperties": "Incolla proprietà",
   "copyPasteAs": "Copia/Incolla come",
   "copyAsText": "Copia come testo",
   "copyAsSVG": "Copia come SVG",
@@ -78,5 +78,9 @@
   "exportSelectionAsSVG": "Esporta selezione come SVG",
   "exportSelectionAsPPTX": "Esporta selezione come PPTX",
   "exportSelectionAsFig": "Esporta selezione come .fig",
-  "togglePreview": "Anteprima"
+  "togglePreview": "Anteprima",
+  "browseFiles": "Sfoglia file…",
+  "saveTo": "Salva in…",
+  "showVersionHistory": "Mostra cronologia versioni",
+  "saveToVersionHistory": "Salva nella cronologia versioni…"
 }

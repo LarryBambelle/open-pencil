@@ -7,11 +7,9 @@
   "text": "Tekst",
   "new": "Nowy",
   "open": "Otwórz…",
-  "openStorageWorkspace": "Otwórz obszar przechowywania…",
   "openTour": "Otwórz przewodnik",
   "save": "Zapisz",
   "saveAs": "Zapisz jako…",
-  "saveToStorage": "Zapisz w obszarze przechowywania…",
   "exportSelection": "Eksportuj zaznaczenie…",
   "autosave": "Automatyczny zapis do pliku",
   "copy": "Kopiuj",
@@ -39,6 +37,8 @@
   "underline": "Podkreślenie",
   "pasteHere": "Wklej tutaj",
   "pasteToReplace": "Wklej, aby zastąpić",
+  "copyProperties": "Kopiuj właściwości",
+  "pasteProperties": "Wklej właściwości",
   "copyPasteAs": "Kopiuj/Wklej jako",
   "copyAsText": "Kopiuj jako tekst",
   "copyAsSVG": "Kopiuj jako SVG",
@@ -78,5 +78,9 @@
   "exportSelectionAsSVG": "Eksportuj zaznaczenie jako SVG",
   "exportSelectionAsPPTX": "Eksportuj zaznaczenie jako PPTX",
   "exportSelectionAsFig": "Eksportuj zaznaczenie jako .fig",
-  "togglePreview": "Podgląd"
+  "togglePreview": "Podgląd",
+  "browseFiles": "Przeglądaj pliki…",
+  "saveTo": "Zapisz w…",
+  "showVersionHistory": "Pokaż historię wersji",
+  "saveToVersionHistory": "Zapisz w historii wersji…"
 }

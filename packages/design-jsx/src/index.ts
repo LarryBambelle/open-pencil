@@ -41,6 +41,7 @@ export {
 export {
   type TreeNode,
   type BaseProps,
+  type EllipseProps,
   type ComponentProps,
   type InstanceProps,
   type TextProps,
@@ -82,6 +83,7 @@ export {
 } from './paints'
 
 export { defineVars, designVar, isVariable, type DesignVariable, type VarDef } from './vars'
+export { isLayerRef, ref, type LayerRef } from './refs'
 
 export { createElement } from './mini-react'
 
@@ -90,6 +92,10 @@ export type { ArtworkPlacement, DesignJSXServices, SVGSource } from './services'
 export type { RenderOptions } from './types'
 export {
   DESIGN_JSX_ELEMENTS,
+  elementPropsByName,
+  type DesignJSXElementDefinition
+} from './elements'
+export {
   DESIGN_JSX_HELPERS,
   DESIGN_JSX_PROPERTIES,
   DESIGN_JSX_SUPPORTED_PROPERTIES,
@@ -102,14 +108,12 @@ export {
   type DesignJSXStyleKey,
   designJSXProp,
   designJSXPropertyNames,
-  type DesignJSXElementDefinition,
   type DesignJSXHelperDefinition,
   type DesignJSXPropertyDefinition
 } from './schema'
 export {
   transformDesignJSXExpression,
   transformDesignJSXProgram,
-  type DesignJSXChunk,
   type DesignJSXProgram
 } from './transform'
 
@@ -121,7 +125,8 @@ export {
   selectionToJSXWithLayers,
   type DesignJSXElement,
   type DesignJSXWithLayers,
-  type JSXAttributeSource
+  type JSXAttributeSource,
+  type JSXExportOptions
 } from './export'
 export { parseJSXAttributes } from './attributes'
 export { jsxNodeFields, type JSXNodeFields } from './fields'

@@ -1,5 +1,6 @@
 import copy from 'copy-to-clipboard'
 
+import type { CopyOptions } from '@open-pencil/core/editor'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import type { EditorStore } from '@/app/editor/active-store'
@@ -9,7 +10,7 @@ import {
   getInMemoryClipboardHTML,
   setInMemoryClipboardPayload
 } from '@/app/editor/clipboard/memory'
-import { pasteClipboardHTML, pasteSVGText } from '@/app/editor/clipboard/paste'
+import { pasteClipboardHTML, pasteSVGText } from '@/app/editor/clipboard/paste/content'
 import type {
   BrowserClipboardIO,
   BrowserClipboardReadResult,
@@ -76,10 +77,14 @@ const browserClipboardIO: BrowserClipboardIO = {
   read: readBrowserClipboard
 }
 
-async function copySelection(store: EditorStore, io: BrowserClipboardIO): Promise<boolean> {
+async function copySelection(
+  store: EditorStore,
+  io: BrowserClipboardIO,
+  options?: CopyOptions
+): Promise<boolean> {
   try {
     if (store.state.selectedIds.size === 0) return false
-    const prepared = store.prepareCopy()
+    const prepared = store.prepareCopy(options)
     const writing = io.write(prepared)
     const [payload, written] = await Promise.all([prepared, writing])
     if (!payload.html && !payload.plainText) return false
@@ -120,7 +125,7 @@ export function createBrowserSystemClipboard(
   io: BrowserClipboardIO = browserClipboardIO
 ): SystemClipboard {
   return {
-    copy: (store) => copySelection(store, io),
+    copy: (store, options) => copySelection(store, io, options),
     paste: (store, cursorPos) => pasteSelection(store, cursorPos, io)
   }
 }

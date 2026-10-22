@@ -1,4 +1,9 @@
 import {
+  noCloudDynamicHTMLRule,
+  noCloudSecretInQueryRule,
+  noCloudSecretLoggingRule
+} from '#lint/rules/cloud.ts'
+import {
   noConditionalObjectSpreads,
   noFlatKiwiModules,
   noMixedCaseAcronymIdentifiers
@@ -10,6 +15,7 @@ import { noModuleMockingRule } from '#lint/rules/quality/module-mocking.ts'
 import { noReduceAccumulatorCopyRule } from '#lint/rules/quality/reduce-accumulator-copy.ts'
 import { noUnknownTailwindClassesRule } from '#lint/rules/quality/tailwind-classes.ts'
 import { noWidenThenAssertRule } from '#lint/rules/quality/widen-then-assert.ts'
+import { noRawSQLRule } from '#lint/rules/sql.ts'
 import { normalizedFilename } from '#lint/support/context.ts'
 import type { PluginRule, RuleDefinition } from '#lint/support/types.ts'
 import type { TSESTree } from '@typescript-eslint/utils'
@@ -500,6 +506,10 @@ const plugin = {
     'no-top-level-prefixed-test-files': noTopLevelPrefixedTestFiles,
     'no-conditional-object-spreads': noConditionalObjectSpreads,
     'no-hand-rolled-base64': noHandRolledBase64Rule,
+    'no-raw-sql': noRawSQLRule,
+    'no-cloud-dynamic-html': noCloudDynamicHTMLRule,
+    'no-cloud-secret-in-query': noCloudSecretInQueryRule,
+    'no-cloud-secret-logging': noCloudSecretLoggingRule,
     'no-unvalidated-json-parse': noUnvalidatedJSONParseRule,
     'prefer-es-toolkit': preferEsToolkitRule,
     'no-module-mocking': noModuleMockingRule,

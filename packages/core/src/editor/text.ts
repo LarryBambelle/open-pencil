@@ -12,6 +12,7 @@ import { weightToStyle } from '#core/text/fonts'
 import { hasGlyphOutlines } from '#core/text/opentype'
 
 import { applyBoundTextEdit } from './components/authoring/text-edit'
+import { applyGeneratedTextNameEdit } from './text/name'
 import { pathTextEditChanges } from './text/path-edit'
 import {
   createTextEditSession,
@@ -21,6 +22,7 @@ import {
   type TextEditSession
 } from './text/session'
 import type { EditorContext } from './types'
+import { createVariableBindingActions } from './variable-bindings'
 
 /**
  * Path text is edited by re-flowing glyph OUTLINES along its path. When the font
@@ -105,6 +107,7 @@ function applyTextInstanceOverride(
 
 export function createTextActions(ctx: EditorContext) {
   let activeSession: TextEditSession | null = null
+  const variableBindings = createVariableBindingActions(ctx)
 
   /**
    * Typing resizes auto-sized text and lays out its auto-layout ancestors as it goes, so a Hug
@@ -177,7 +180,8 @@ export function createTextActions(ctx: EditorContext) {
     }
     const instanceOverridesAfter = snapshotInstanceOverrides(ctx, containingInstances)
 
-    // Text a property drives becomes the property's value too, in the same undo step.
+    // Text a property drives becomes the property's value too, and typing over text a variable
+    // decides lets go of the variable, as in Figma, both in the same undo step.
     ctx.undo.runBatch('Edit text', () => {
       ctx.undo.push({
         label: 'Edit text',
@@ -204,7 +208,12 @@ export function createTextActions(ctx: EditorContext) {
           ctx.runLayoutForNode(result.nodeId)
         }
       })
-      if (before.text !== after.text) applyBoundTextEdit(ctx, result.nodeId, after.text)
+      if (before.text !== after.text) {
+        if (node && 'text' in node.boundVariables)
+          variableBindings.unbindVariable(result.nodeId, 'text')
+        applyBoundTextEdit(ctx, result.nodeId, after.text)
+        applyGeneratedTextNameEdit(ctx, result.nodeId, after.text)
+      }
     })
   }
 

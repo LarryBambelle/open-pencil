@@ -8,6 +8,7 @@ import {
   moveToolbarEntry,
   normalizeToolbarLayout,
   placeToolbarEntry,
+  readOnlyToolbarLayout,
   setToolbarEntryHidden,
   toolbarDropOperations,
   toolbarItems,
@@ -27,14 +28,17 @@ function layout(groups: ToolbarEntry[][], hidden: ToolbarEntry[] = []): ToolbarL
 
 describe('normalizeToolbarLayout', () => {
   test('keeps the default layout as it is', () => {
-    expect(layout(DEFAULT_TOOLBAR_LAYOUT.groups)).toEqual(DEFAULT_TOOLBAR_LAYOUT)
+    expect(layout(DEFAULT_TOOLBAR_LAYOUT.groups, DEFAULT_TOOLBAR_LAYOUT.hidden)).toEqual(
+      DEFAULT_TOOLBAR_LAYOUT
+    )
   })
 
   test('drops unknown entries, repeats and empty groups', () => {
     const groups = [['SELECT', 'LASSO', 'SELECT'], [], ['FRAME', 'SECTION', 'FRAME']]
     const result = normalizeToolbarLayout(groups, ['HAND', 'HAND', 'GHOST'])
     expect(result.groups.slice(0, 2)).toEqual([['SELECT'], ['FRAME', 'SECTION']])
-    expect(result.hidden).toEqual(['HAND'])
+    // The sticky, shape and connector tools are placed hidden, as the default layout keeps them.
+    expect(result.hidden).toEqual(['HAND', 'STICKY', 'SHAPE_WITH_TEXT', 'CONNECTOR'])
   })
 
   test('never hides Move', () => {
@@ -43,7 +47,14 @@ describe('normalizeToolbarLayout', () => {
 
   test('keeps commands out of flyouts', () => {
     const result = layout([['SELECT', 'insert-icon', 'HAND'], ['COMMENT']])
-    expect(result.groups.slice(-4)).toEqual([['TEXT'], ['insert-icon'], ['HAND'], ['COMMENT']])
+    expect(result.groups.slice(-6)).toEqual([
+      ['STICKY'],
+      ['SHAPE_WITH_TEXT'],
+      ['CONNECTOR'],
+      ['insert-icon'],
+      ['HAND'],
+      ['COMMENT']
+    ])
   })
 
   test('puts a tool the stored layout lacks into its default flyout', () => {
@@ -56,6 +67,9 @@ describe('normalizeToolbarLayout', () => {
     const stored: ToolbarEntry[][] = [['TEXT'], ['SELECT'], SHAPES, ['HAND']]
     expect(layout(stored).groups).toEqual([
       ['TEXT'],
+      ['STICKY'],
+      ['SHAPE_WITH_TEXT'],
+      ['CONNECTOR'],
       ['SELECT'],
       ['FRAME', 'SECTION'],
       SHAPES,
@@ -64,6 +78,16 @@ describe('normalizeToolbarLayout', () => {
       ['COMMENT'],
       ['insert-icon']
     ])
+  })
+})
+
+describe('tools hidden by default', () => {
+  test('a layout stored before the sticky tool gets it hidden, and a shown one stays shown', () => {
+    const before = DEFAULT_TOOLBAR_LAYOUT.groups.map((group) =>
+      group.filter((entry) => entry !== 'STICKY')
+    )
+    expect(layout(before).hidden).toEqual(['STICKY'])
+    expect(layout(DEFAULT_TOOLBAR_LAYOUT.groups, []).hidden).toEqual([])
   })
 })
 
@@ -213,5 +237,18 @@ describe('dragging', () => {
     ])
     expect(combineToolbarEntry(base, 'LINE', 'STAR')).toBe(base)
     expect(combineToolbarEntry(base, 'PEN', 'insert-icon')).toBe(base)
+  })
+})
+
+describe('readOnlyToolbarLayout', () => {
+  test('keeps Move and Hand, as Figma does while a version is viewed', () => {
+    const keys = (groups: ToolbarEntry[][]) =>
+      toolbarItems(readOnlyToolbarLayout(layout(groups)), LABELS, SHORTCUTS).map((item) =>
+        item.kind === 'tool' ? [item.tool.key, ...(item.tool.flyout ?? [])] : item.action
+      )
+    expect(keys([['SELECT', 'HAND'], ['FRAME'], ['insert-icon']])).toEqual([
+      ['SELECT', 'SELECT', 'HAND']
+    ])
+    expect(keys(DEFAULT_TOOLBAR_LAYOUT.groups)).toEqual([['SELECT'], ['HAND']])
   })
 })

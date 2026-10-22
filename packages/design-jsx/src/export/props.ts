@@ -3,13 +3,14 @@ import { isEqual, omitBy, pick } from 'es-toolkit'
 import {
   createDefaultNode,
   layoutSizing,
+  type ArcData,
   type SceneGraph,
-  type SceneNode,
-  type NodeType
+  type SceneNode
 } from '@open-pencil/scene-graph'
 import { DEFAULT_FONT_FAMILY } from '@open-pencil/scene-graph/constants'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
+import { BLEND_MODE, TEXT_ALIGN, TEXT_ALIGN_VERTICAL, TEXT_CASE, TEXT_DECORATION } from '../enums'
 import { collectDecorationProps } from './decoration'
 import {
   collectCornerRadii,
@@ -25,22 +26,6 @@ import type { JSXProp } from './value'
 export type { JSXProp } from './value'
 
 /** The element that represents each node type; other types are not exported. */
-export const NODE_TYPE_TO_TAG: Partial<Record<NodeType, string>> = {
-  FRAME: 'Frame',
-  RECTANGLE: 'Rectangle',
-  ROUNDED_RECTANGLE: 'Rectangle',
-  ELLIPSE: 'Ellipse',
-  TEXT: 'Text',
-  LINE: 'Line',
-  STAR: 'Star',
-  POLYGON: 'Polygon',
-  VECTOR: 'Vector',
-  GROUP: 'Group',
-  SECTION: 'Section',
-  COMPONENT: 'Component',
-  COMPONENT_SET: 'Frame',
-  INSTANCE: 'Frame'
-}
 
 function collectGridSizingProps(node: SceneNode, props: JSXProp[]): void {
   props.push(['grid', true])
@@ -140,8 +125,10 @@ function collectAppearanceProps(node: SceneNode, props: JSXProp[]): void {
   if (node.cornerSmoothing > 0) props.push(['cornerSmoothing', node.cornerSmoothing])
   if (node.opacity < 1) props.push(['opacity', Math.round(node.opacity * 100) / 100])
   if (node.rotation !== 0) props.push(['rotate', Math.round(node.rotation * 100) / 100])
+  if (node.flipX) props.push(['flipX', true])
+  if (node.flipY) props.push(['flipY', true])
   if (node.blendMode !== 'PASS_THROUGH' && node.blendMode !== 'NORMAL') {
-    props.push(['blendMode', node.blendMode.toLowerCase()])
+    props.push(['blendMode', BLEND_MODE.print(node.blendMode)])
   }
   if (node.clipsContent) props.push(['overflow', 'hidden'])
   collectEffectProps(node, props)
@@ -160,6 +147,21 @@ function collectPositionProps(
   }
   if (node.x !== 0) props.push(['x', node.x])
   if (node.y !== 0) props.push(['y', node.y])
+}
+
+/** A layer's opacity and whether it is hidden, for an element that writes its own props. */
+export function presenceProps(node: SceneNode): JSXProp[] {
+  const props: JSXProp[] = []
+  if (node.opacity < 1) props.push(['opacity', Math.round(node.opacity * 100) / 100])
+  if (!node.visible) props.push(['visible', false])
+  return props
+}
+
+/** Where a layer sits in its parent, as the export writes any layer's position. */
+export function positionProps(node: SceneNode, graph: SceneGraph): JSXProp[] {
+  const props: JSXProp[] = []
+  collectPositionProps(node, getNodeContext(node, graph), props)
+  return props
 }
 
 function collectSizingProps(
@@ -249,21 +251,21 @@ function collectTextNodeProps(node: SceneNode, props: JSXProp[]): void {
   if (direction === 'RTL') props.push(['dir', 'rtl'])
   if (node.italic) props.push(['italic', true])
   if (node.textAlignHorizontal !== 'LEFT') {
-    props.push(['textAlign', node.textAlignHorizontal.toLowerCase()])
+    props.push(['textAlign', TEXT_ALIGN.print(node.textAlignHorizontal)])
   }
   if (node.textAlignVertical !== 'TOP') {
-    props.push(['textAlignVertical', node.textAlignVertical.toLowerCase()])
+    props.push(['textAlignVertical', TEXT_ALIGN_VERTICAL.print(node.textAlignVertical)])
   }
   if (node.lineHeight != null) props.push(['lineHeight', node.lineHeight])
   if (node.letterSpacing !== 0) props.push(['letterSpacing', node.letterSpacing])
   if (node.textDecoration !== 'NONE')
-    props.push(['textDecoration', node.textDecoration.toLowerCase()])
+    props.push(['textDecoration', TEXT_DECORATION.print(node.textDecoration)])
   collectDecorationProps(
     omitBy(pick(node, DECORATION_FIELDS), (value, key) => isEqual(value, TEXT_DEFAULTS[key])),
     node,
     props
   )
-  if (node.textCase !== 'ORIGINAL') props.push(['textCase', node.textCase.toLowerCase()])
+  if (node.textCase !== 'ORIGINAL') props.push(['textCase', TEXT_CASE.print(node.textCase)])
   if (node.maxLines != null) props.push(['maxLines', node.maxLines])
   if (node.textTruncation === 'ENDING' && node.maxLines == null) props.push(['truncate', true])
   if (node.paragraphSpacing !== 0) props.push(['paragraphSpacing', node.paragraphSpacing])
@@ -293,7 +295,21 @@ function collectTextAutoResizeProp(
   }
 }
 
+const roundDegrees = (radians: number) => Math.round(((radians * 180) / Math.PI) * 10_000) / 10_000
+
+/** An ellipse's arc, written only where it is not a whole ellipse. */
+function collectArcProps(arc: ArcData | null, props: JSXProp[]): void {
+  if (!arc) return
+  const start = roundDegrees(arc.startingAngle)
+  const end = roundDegrees(arc.endingAngle)
+  if (start !== 0) props.push(['startAngle', start])
+  // A whole turn from the start is the default end.
+  if (Math.abs(end - (start + 360)) > 1e-6) props.push(['endAngle', end])
+  if (arc.innerRadius !== 0) props.push(['innerRadius', arc.innerRadius])
+}
+
 function collectShapeNodeProps(node: SceneNode, props: JSXProp[]): void {
+  if (node.type === 'ELLIPSE') collectArcProps(node.arcData, props)
   if (node.type === 'STAR') {
     if (node.pointCount !== 5) props.push(['points', node.pointCount])
     if (node.starInnerRadius !== 0.382) props.push(['innerRadius', node.starInnerRadius])

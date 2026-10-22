@@ -1,15 +1,29 @@
 /* eslint-disable max-lines -- SceneGraph exposes a stable facade over domain modules */
 export * from './mutation-impact'
 export * from './variables/bindings'
+export * from './variables/text'
 export type { VariableModeFallback } from './variables'
 export { modesDefaultFirst } from './variables'
 export * from './variables/token'
+export * from './variables/value'
+export * from './variables/formula'
+export * from './variables/formula/schema'
+export * from './variables/schema'
 export * from './plugin-data/field'
 export * from './plugin-data/fields'
 export { rescaleNodeTree, scaleNodeChanges } from './scaling'
 import { TRANSFORM_FIELDS, SIZE_FIELDS } from './fields/geometry'
 export { TRANSFORM_FIELDS, SIZE_FIELDS } from './fields/geometry'
-export { TEXT_METRIC_FIELDS, TEXT_SHAPING_FIELDS, TEXT_LAYOUT_FIELDS } from './fields/text'
+import { AUTO_LAYOUT_FIELDS, SIZE_CONSTRAINT_FIELDS } from './fields/layout'
+export { AUTO_LAYOUT_FIELDS, SIZE_CONSTRAINT_FIELDS } from './fields/layout'
+export { CORNER_FIELDS, PAINT_FIELDS, STROKE_FIELDS } from './fields/appearance'
+export {
+  TEXT_METRIC_FIELDS,
+  TEXT_SHAPING_FIELDS,
+  TEXT_LAYOUT_FIELDS,
+  TEXT_DECORATION_FIELDS,
+  TEXT_STYLE_FIELDS
+} from './fields/text'
 export * from './transfer'
 export * from './instance-overrides'
 export * from './asset-keys'
@@ -28,6 +42,9 @@ export {
 export * from './slots/content'
 export * from './slots/authoring'
 export * from './slots/limits'
+export * from './connectors'
+export * from './figjam'
+export * from './generated'
 export * from './behaviours/kinds'
 export * from './icons/schema'
 export * from './icons/model'
@@ -42,12 +59,17 @@ export * from './comments/document'
 export * from './comments/list'
 export * from './comments/merge'
 export * from './comments/threads'
+export * from './statuses/impact'
+export * from './statuses/node'
+export * from './statuses/schema'
+export * from './statuses/workflow'
 export * from './copy'
 export {
   createDefaultNode,
   defaultStrokeAlign,
   FITTED_CONTAINER_TYPES,
-  newStrokeGeometry
+  newStrokeGeometry,
+  SIDE_STROKE_TYPES
 } from './node-defaults'
 export {
   copyInstanceComponentProps,
@@ -71,6 +93,7 @@ export {
 export * from './snap'
 export * from './export-format'
 export * from './export-scale'
+export * from './fig-compression'
 export * from './coordinate'
 export * from './layout'
 export * from './text'
@@ -89,9 +112,11 @@ export { CommittedGraphEventError } from './buffered-events'
 import { BufferedSceneEmitter } from './buffered-events'
 import { cloneNodeProps } from './copy'
 import { bindNodeEvents } from './events'
+import { withGeneratedFrameSize } from './generated'
 import * as HitTest from './hit-test'
 export type { DropTargetOptions } from './hit-test'
 import * as Instances from './instances'
+import { LayoutWrites } from './layout/writes'
 import Matrix, { type Mat3 } from './matrix'
 import { CONTAINER_TYPES, createDefaultNode } from './node-defaults'
 import { updateNodePreview, type NodePreviewObserver } from './preview'
@@ -125,7 +150,8 @@ import type {
   Variable,
   VariableCollection,
   VariableType,
-  VariableValue
+  VariableValue,
+  VariableLiteral
 } from './types'
 
 export {
@@ -204,9 +230,12 @@ export class SceneGraph {
   private importedStateApplicationDepth = 0
   private importedIdGenerator: (() => string) | undefined
   private layoutMutationDepth = 0
+  private layoutWrites: LayoutWrites | null = null
   private derivedLayoutDepth = 0
   positionPreviewVersion = 0
   instanceIndex = new Map<string, Set<string>>()
+  /** Every connector in the graph, so routing need not scan every layer. */
+  connectorIds = new Set<string>()
 
   constructor(private readonly idGenerator: () => string = generateId) {
     const root = createDefaultNode(this.idGenerator, 'FRAME', {
@@ -350,7 +379,7 @@ export class SceneGraph {
     variableId: string,
     modeId?: string,
     visited?: Set<string>
-  ): VariableValue | undefined {
+  ): VariableLiteral | undefined {
     return Variables.resolveVariable(this, variableId, modeId, visited)
   }
 
@@ -382,7 +411,7 @@ export class SceneGraph {
     nodeId: string,
     variableId: string,
     fallback?: VariableModeFallback
-  ): VariableValue | undefined {
+  ): VariableLiteral | undefined {
     return Variables.resolveVariableForNode(this, nodeId, variableId, fallback)
   }
 
@@ -497,7 +526,8 @@ export class SceneGraph {
     for (const collection of this.variableCollections.values()) count += collection.modes.length
     return count
   }
-  private isEntityIdTaken(id: string): boolean {
+  /** Whether a node, variable, collection, or mode has this id. */
+  isEntityIdTaken(id: string): boolean {
     if (this.nodes.has(id) || this.variables.has(id) || this.variableCollections.has(id))
       return true
     // Callers replace collection maps and edit `modes` in place (history snapshots, transfer,
@@ -510,6 +540,7 @@ export class SceneGraph {
   private registerNode(node: SceneNode, parentId: string | null): SceneNode {
     node.parentId = parentId
     this.nodes.set(node.id, node)
+    if (node.type === 'CONNECTOR') this.connectorIds.add(node.id)
     for (const observer of this.changeObservers) observer.created(node)
     if (node.type === 'INSTANCE' && node.componentId) {
       let set = this.instanceIndex.get(node.componentId)
@@ -556,36 +587,14 @@ export class SceneGraph {
   static LAYOUT_AFFECTING_KEYS: ReadonlySet<string> = new Set([
     ...TRANSFORM_FIELDS,
     ...SIZE_FIELDS,
-    'layoutMode',
-    'layoutDirection',
-    'itemSpacing',
-    'counterAxisSpacing',
-    'paddingLeft',
-    'paddingRight',
-    'paddingTop',
-    'paddingBottom',
-    'primaryAxisAlign',
-    'counterAxisAlign',
-    'counterAxisAlignContent',
-    'layoutWrap',
-    'primaryAxisSizing',
-    'counterAxisSizing',
+    ...AUTO_LAYOUT_FIELDS,
     'layoutPositioning',
     'layoutGrow',
     'layoutAlignSelf',
-    'strokesIncludedInLayout',
     'horizontalConstraint',
     'verticalConstraint',
-    'gridTemplateColumns',
-    'gridTemplateRows',
-    'gridColumnGap',
-    'gridRowGap',
     'gridPosition',
-    'minWidth',
-    'maxWidth',
-    'minHeight',
-    'maxHeight',
-    'targetAspectRatio'
+    ...SIZE_CONSTRAINT_FIELDS
   ])
 
   runPreviewUpdates(fn: () => void, beforeUpdate?: NodePreviewObserver): void {
@@ -643,12 +652,31 @@ export class SceneGraph {
     return this.derivedLayoutDepth > 0
   }
 
+  /**
+   * Runs `fn` as layout. Its updates are published once the outermost layout ends, still as
+   * layout, and without values a pass changed and a later pass put back (`LayoutWrites`).
+   */
   withLayoutMutations(fn: () => void): void {
+    const outermost = this.layoutMutationDepth === 0
     this.layoutMutationDepth++
+    if (outermost) this.layoutWrites = new LayoutWrites()
     try {
       fn()
     } finally {
-      this.layoutMutationDepth--
+      try {
+        if (outermost) this.publishLayoutUpdates()
+      } finally {
+        this.layoutMutationDepth--
+      }
+    }
+  }
+
+  private publishLayoutUpdates(): void {
+    const writes = this.layoutWrites
+    this.layoutWrites = null
+    if (!writes) return
+    for (const [id, changes] of writes.updates((nodeId) => this.nodes.get(nodeId))) {
+      this.emitter.emit('node:updated', id, changes)
     }
   }
   get isApplyingLayout(): boolean {
@@ -658,6 +686,8 @@ export class SceneGraph {
     this.updateNodePreview(id, { x, y })
   }
   updateNodePreview(id: string, changes: Partial<SceneNode>): void {
+    const node = this.nodes.get(id)
+    if (node) changes = this.sizedChanges(node, changes)
     const appliedChanges = updateNodePreview(this, id, changes, (node, applied) => {
       for (const observe of this.previewObservers) observe(node, applied)
     })
@@ -673,7 +703,12 @@ export class SceneGraph {
     const node = this.nodes.get(id)
     if (!node) return
     changes = stripUndefinedProps(styleDetachmentChanges(node, stripUndefinedProps(changes)))
-    this.applyNodeChanges(node, changes)
+    this.applyNodeChanges(node, this.sizedChanges(node, changes))
+  }
+
+  /** A size set from outside layout, with what it also sets on a generated frame. */
+  private sizedChanges(node: SceneNode, changes: Partial<SceneNode>): Partial<SceneNode> {
+    return this.isApplyingLayout ? changes : withGeneratedFrameSize(node, changes)
   }
 
   /** Replay captured properties without dropping explicit undefined values or absent keys. */
@@ -725,11 +760,17 @@ export class SceneGraph {
     if (changes.vectorNetwork) {
       changes = { ...changes, vectorNetwork: normalizeVectorNetwork(changes.vectorNetwork) }
     }
+    this.layoutWrites?.record(node, changes)
     Object.assign(node, changes)
     if (changes.fills) removeStaleBindings(node, 'fills', changes)
     if (changes.strokes) removeStaleBindings(node, 'strokes', changes)
     for (const key of absent) Reflect.deleteProperty(node, key)
-    this.emitter.emit('node:updated', id, changes)
+    this.publishNodeUpdate(id, changes)
+  }
+
+  /** Publishes an update now, or leaves it to the running layout, which publishes once it ends. */
+  private publishNodeUpdate(id: string, changes: Partial<SceneNode>): void {
+    if (!this.layoutWrites) this.emitter.emit('node:updated', id, changes)
   }
 
   reparentNode(nodeId: string, newParentId: string): void {
@@ -847,6 +888,7 @@ export class SceneGraph {
     if (node.type === 'INSTANCE' && node.componentId) {
       this.instanceIndex.get(node.componentId)?.delete(id)
     }
+    this.connectorIds.delete(id)
     this.nodes.delete(id)
     this.emitter.emit('node:deleted', id, node.parentId)
   }
@@ -905,7 +947,10 @@ export class SceneGraph {
     // `as SourceMetadata` required: cloneNodeProps returns Partial<SceneNode>,
     // so props.source is SourceMetadata | undefined, but we know it's always set.
     props.source = { ...(props.source as SourceMetadata), id: null, orderKey: null }
+    // A copy is a new design nobody has reviewed: Figma's duplicate and clone() drop the status.
+    props.status = null
     const clone = this.createNode(src.type, parentId, { ...props, ...overrides })
+    if (src.status) markSourceFieldsEdited(clone, ['status'])
 
     for (const childId of src.childIds) {
       this.cloneTree(childId, clone.id)

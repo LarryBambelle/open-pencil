@@ -1,29 +1,3 @@
-import { REKA_ELEMENTS, rekaRole } from './behaviours'
-
-function rekaDescription(namespace: string, part: string): string {
-  const role = rekaRole(`${namespace}.${part}`)
-  if (role?.role === 'root')
-    return `A main component that behaves as Reka UI's ${namespace} ${part}.`
-  if (role?.role === 'input') return `The text layer of a ${namespace}'s text property.`
-  return `The ${namespace} ${part}, drawn by a slot of its component.`
-}
-
-/** A Reka UI element as the element list describes it. */
-function rekaElementDefinitions(): DesignJSXElementDefinition[] {
-  return Object.entries(REKA_ELEMENTS).flatMap(([namespace, parts]) =>
-    Object.keys(parts).map((part) => {
-      const type = `${namespace}.${part}`
-      return { name: type, runtimeType: type, description: rekaDescription(namespace, part) }
-    })
-  )
-}
-
-export type DesignJSXElementDefinition = {
-  name: string
-  runtimeType: string
-  description: string
-}
-
 export type DesignJSXNamedDefinition = {
   name: string
   description: string
@@ -31,36 +5,6 @@ export type DesignJSXNamedDefinition = {
 
 export type DesignJSXPropertyDefinition = DesignJSXNamedDefinition
 export type DesignJSXHelperDefinition = DesignJSXNamedDefinition
-
-export const DESIGN_JSX_ELEMENTS: DesignJSXElementDefinition[] = [
-  { name: 'Frame', runtimeType: 'frame', description: 'A frame or auto-layout container.' },
-  { name: 'Text', runtimeType: 'text', description: 'A text layer.' },
-  {
-    name: 'Span',
-    runtimeType: 'text-span',
-    description: 'Characters inside a Text, styled apart from the rest.'
-  },
-  {
-    name: 'Paragraph',
-    runtimeType: 'text-paragraph',
-    description: 'One paragraph of a Text, plain or a list item.'
-  },
-  { name: 'Rectangle', runtimeType: 'rectangle', description: 'A rectangle layer.' },
-  { name: 'Ellipse', runtimeType: 'ellipse', description: 'An ellipse layer.' },
-  { name: 'Line', runtimeType: 'line', description: 'A line layer.' },
-  { name: 'Star', runtimeType: 'star', description: 'A star layer.' },
-  { name: 'Polygon', runtimeType: 'polygon', description: 'A polygon layer.' },
-  { name: 'Vector', runtimeType: 'vector', description: 'A vector layer.' },
-  { name: 'Group', runtimeType: 'group', description: 'A group of layers.' },
-  { name: 'Section', runtimeType: 'section', description: 'A canvas section.' },
-  { name: 'Component', runtimeType: 'component', description: 'A reusable component.' },
-  { name: 'ComponentSet', runtimeType: 'component-set', description: 'A component variant set.' },
-  { name: 'Instance', runtimeType: 'instance', description: 'An instance of a component.' },
-  { name: 'View', runtimeType: 'frame', description: 'An alias for Frame.' },
-  { name: 'Rect', runtimeType: 'rectangle', description: 'An alias for Rectangle.' },
-  { name: 'Icon', runtimeType: 'icon', description: 'An Iconify icon.' },
-  ...rekaElementDefinitions()
-]
 
 /** Props only `<Paragraph>` takes; like every element, it also takes `key`. */
 export const DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES = [
@@ -107,6 +51,7 @@ export const DESIGN_JSX_TEXT_PARAGRAPH_PROPERTY_NAMES = [
 export const DESIGN_JSX_SUPPORTED_PROPERTY_NAMES = [
   'name',
   'key',
+  'ref',
   'flex',
   'flow',
   'dir',
@@ -171,6 +116,8 @@ export const DESIGN_JSX_SUPPORTED_PROPERTY_NAMES = [
   'blendMode',
   'rotate',
   'rotation',
+  'flipX',
+  'flipY',
   'overflow',
   'mask',
   'visible',
@@ -228,6 +175,8 @@ export const DESIGN_JSX_SUPPORTED_PROPERTY_NAMES = [
   'points',
   'pointCount',
   'innerRadius',
+  'startAngle',
+  'endAngle',
   'label',
   'style',
   'bind',
@@ -330,5 +279,6 @@ export const DESIGN_JSX_HELPERS: DesignJSXHelperDefinition[] = [
   'backgroundBlur',
   'foregroundBlur',
   'designVar',
-  'defineVars'
+  'defineVars',
+  'ref'
 ].map((name) => ({ name, description: `OpenPencil ${name} helper.` }))

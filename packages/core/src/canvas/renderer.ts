@@ -30,6 +30,7 @@ import { LabelCache } from './labels/cache'
 import * as LabelHitTest from './labels/hit-test'
 import { LabelParagraphCache } from './labels/paragraph-cache'
 import { labelHitOptions } from './labels/style'
+import { NodePathCaches } from './paths/cache'
 import * as RenderColors from './renderer/colors'
 import * as RendererFonts from './renderer/fonts'
 import { destroyRenderer, releaseLiveImages } from './renderer/lifecycle'
@@ -38,9 +39,11 @@ import { initializeRendererPaints, initializeSelectionPaintColors } from './rend
 import * as RenderPipeline from './renderer/pipeline'
 import type { SceneBacking, SceneBackingBuild } from './renderer/retained-backing/types'
 import * as RendererState from './renderer/state'
+import type { EffectPass } from './shadows'
 import * as RenderText from './text'
 import type { SavedDecorationCache } from './text/decorations'
 import { createDerivedGlyphPathCache, createGlyphSilhouetteCache } from './text/derived'
+import { createEmojiImageCache } from './text/emoji'
 import { TextPreparationCache } from './text/preparation/cache'
 export type {
   MeasurementMode,
@@ -80,6 +83,7 @@ export interface PendingFontNode {
 }
 
 import type { PlacedIssueMarker } from './issues/types'
+import type { PlacedStatusLabel } from './labels/status'
 import { EffectRasterCache } from './renderer/effect-raster-cache'
 import { TiledSceneController } from './renderer/tiles'
 import type { TransientCanvasPreview } from './renderer/transient-previews'
@@ -142,15 +146,13 @@ export class SkiaRenderer {
   imageMemoryPage: string | null = null
   onImagePreviewReady: (() => void) | null = null
   readonly imagePreviews = new ImagePreviewCache(() => this.onImagePreviewReady?.())
-  vectorPathCache = new Map<string, Path[]>()
-  vectorStrokePathCache = new Map<string, Path[]>()
-  vectorStrokeOutlineCache = new Map<string, Path[]>()
-  fillGeometryCache = new Map<string, Path[]>()
-  strokeGeometryCache = new Map<string, Path[]>()
+  nodePaths = new NodePathCaches()
   /** Path-text glyph silhouettes (stroke-and-union, font units) keyed by blob hash + relative weight. */
   glyphSilhouetteCache = createGlyphSilhouetteCache()
   derivedGlyphPathCache = createDerivedGlyphPathCache()
   derivedDecorationCache: SavedDecorationCache = new WeakMap()
+  /** Images of the emoji saved text draws, by what drew them and the emoji. */
+  emojiImageCache = createEmojiImageCache()
   renderingSceneBacking = false
   scenePicture: SkPicture | null = null
   scenePictureVersion = -1
@@ -167,7 +169,14 @@ export class SkiaRenderer {
   sceneBackingLastViewportEventAt = 0
   navigationPhase: EditorState['navigation']['phase'] = 'idle'
   navigationGeneration = 0
+  /** The document is read-only: selections draw without handles to drag. */
+  readOnly = false
   tiledSceneEnabled = false
+  /**
+   * What an empty sticky note shows while it is edited on this canvas, in the interface language;
+   * null for a canvas that draws only the document, such as an export.
+   */
+  stickyPlaceholder: string | null = null
   tracksSceneSettlement = true
   /** Colour space this renderer's surface presents; colours convert into it when painting. */
   presentationColorSpace: RenderColorSpace = 'srgb'
@@ -176,7 +185,6 @@ export class SkiaRenderer {
   lastSceneViewport: { panX: number; panY: number; zoom: number } | null = null
   nodePictureCache = new Map<string, SkPicture | null>()
   nodePictureCacheGenerations = new Map<string, number>()
-  nodePictureCacheDependencies = new Map<string, readonly string[]>()
   effectRasterCache = new EffectRasterCache()
   subtreePictureCache = new Map<string, SubtreePictureCacheEntry>()
   subtreePictureCachePageId: string | null = null
@@ -219,6 +227,8 @@ export class SkiaRenderer {
   pageId: string | null = null
   /** Issue markers placed in the last overlay pass; hit testing reads the same layout. */
   issueMarkers: PlacedIssueMarker[] = []
+  /** Status labels drawn in the last label pass; clicks on them open the status menu. */
+  statusLabels: PlacedStatusLabel[] = []
   /** Screen rectangles of UI floating over this canvas, which overlays such as edge pins avoid. */
   overlayObstacles: readonly Rect[] = []
 
@@ -295,6 +305,7 @@ export class SkiaRenderer {
   declare getRotatedCorners: (node: SceneNode, abs: Vector) => Vector[]
   declare drawHandle: (canvas: Canvas, x: number, y: number) => void
   declare drawSnapGuides: (canvas: Canvas, guides?: SnapGuide[]) => void
+  declare drawSnapMarks: (canvas: Canvas, guides?: SnapGuide[]) => void
   declare drawMarquee: (canvas: Canvas, marquee?: Rect | null) => void
   declare drawFlashes: (canvas: Canvas, graph: SceneGraph) => void
   declare drawLayoutInsertIndicator: (
@@ -356,13 +367,14 @@ export class SkiaRenderer {
   declare renderComponentSet: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderShape: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderShapeUncached: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
+  declare paintShapeContent: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderEffects: (
     canvas: Canvas,
     node: SceneNode,
+    graph: SceneGraph,
     rect: Float32Array,
     hasRadius: boolean,
-    pass: 'behind' | 'front',
-    shadowShapeChild?: SceneNode | null
+    pass: EffectPass
   ) => void
   declare renderText: (canvas: Canvas, node: SceneNode, fill?: Fill) => void
   declare drawNodeFill: (
@@ -373,7 +385,7 @@ export class SkiaRenderer {
     fill?: Fill
   ) => void
   declare applyFill: (fill: Fill, node: SceneNode, graph: SceneGraph, fillIndex?: number) => boolean
-  declare applyGradientFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => void
+  declare applyGradientFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => boolean
   declare applyImageFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => boolean
   declare drawArc: (canvas: Canvas, node: SceneNode, paint: Paint) => void
   declare drawNodeStroke: (
@@ -395,11 +407,7 @@ export class SkiaRenderer {
     node: SceneNode,
     stroke: Stroke
   ) => void
-  declare drawIndividualSideStrokes: (
-    canvas: Canvas,
-    node: SceneNode,
-    align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
-  ) => void
+  declare drawIndividualSideStrokes: (canvas: Canvas, node: SceneNode, stroke: Stroke) => void
   declare strokeNodeShape: (canvas: Canvas, node: SceneNode, paint: Paint) => void
   declare makeNodeShapePath: (node: SceneNode, rect: Float32Array, hasRadius: boolean) => Path
   declare makePolygonPath: (node: SceneNode) => Path
@@ -754,24 +762,7 @@ export class SkiaRenderer {
   }
 
   invalidateVectorPath(nodeId: string): void {
-    for (const cache of [this.vectorPathCache, this.vectorStrokePathCache]) {
-      const old = cache.get(nodeId)
-      if (!old) continue
-      for (const p of old) p.delete()
-      cache.delete(nodeId)
-    }
-    for (const [key, paths] of this.vectorStrokeOutlineCache) {
-      if (!key.startsWith(`${nodeId}|`)) continue
-      for (const p of paths) p.delete()
-      this.vectorStrokeOutlineCache.delete(key)
-    }
-    for (const cache of [this.fillGeometryCache, this.strokeGeometryCache]) {
-      const oldGeom = cache.get(nodeId)
-      if (oldGeom) {
-        for (const p of oldGeom) p.delete()
-        cache.delete(nodeId)
-      }
-    }
+    this.nodePaths.invalidate(nodeId)
   }
 
   measureTextNode(node: SceneNode, maxWidth?: number): { width: number; height: number } | null {

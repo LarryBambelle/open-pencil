@@ -4,6 +4,7 @@ export {
   ReadOnlyLibraryDefinitionError
 } from './capabilities'
 export type { NodeEditCapability } from './capabilities'
+export { READ_ONLY_TOOLS, ReadOnlyDocumentError } from './read-only'
 export { DEFAULT_SNAPPING_PREFERENCES } from './preferences'
 export type { SnappingPreferences } from './preferences'
 export { createDefaultEditorSharedState } from './state/shared'
@@ -24,9 +25,10 @@ export {
 export { createDefaultEditorState, createEditor } from './create'
 export { executeAtomicTool } from './history/atomic-tool'
 export { isEmptyDocumentChange, type DocumentChange } from './history/document-change'
-export type { PageSnapshot } from './history/snapshot'
-export { graphFromDocumentChange, graphFromPageSnapshot } from './history/snapshot-graph'
-export type { ClipboardPayload, ClipboardSnapshot } from './clipboard/copy'
+export type { PageSnapshot } from './history/snapshot/page'
+export { graphFromDocumentChange, graphFromPageSnapshot } from './history/snapshot/graph'
+export type { ClipboardPayload, ClipboardSnapshot, CopyOptions } from './clipboard/copy'
+export { pastedPropertyChanges } from './clipboard/paste/properties'
 export { resolvePasteTarget } from './clipboard/paste/target'
 export { playIslandRoots } from './play/islands'
 export { resolvePlayState, type InstanceState } from './play/states'
@@ -39,6 +41,7 @@ export type { TokenImportResult } from '#core/io/formats/design-tokens'
 export { reapplyInstanceComponentProperties } from './components/properties'
 export { createGuideActions } from './guides'
 export { createTextActions } from './text'
+export { resizedPathTextGlyphs } from './text/path-edit'
 export { opacityFromBuffer } from './nodes'
 export { layerTypeOptions, type LayerType } from './structure/layer-type'
 export type { NodePreview } from './node-preview'
@@ -60,6 +63,7 @@ export type {
   EditorSharedState,
   EditorViewState,
   FigmaClipboardImageResolver,
+  ResumedPath,
   ShapeHandleHover,
   GradientEdit,
   Tool

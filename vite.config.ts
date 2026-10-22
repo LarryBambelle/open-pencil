@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
 import { ensureBrandAssets } from '@open-pencil/brand-tools'
 import { ensureDemoDocument } from '@open-pencil/demo-tools'
@@ -19,7 +19,7 @@ import {
   localAutomationToken,
   openPencilAutomationPlugin
 } from './vite/automation'
-import { copyCanvasKitAssetsPlugin } from './vite/canvaskit-assets'
+import { cloudPortalBrandPlugin } from './vite/cloud-portal'
 import { aiIconCollection } from './vite/icons'
 import { openPencilPwaPlugin } from './vite/pwa'
 import { rawMarkdownPlugin } from './vite/raw-markdown'
@@ -28,11 +28,20 @@ import { createDevServerOptions } from './vite/server'
 const host = process.env.TAURI_DEV_HOST
 const automationRoute = localAutomationRoute(host)
 
-export default defineConfig(async ({ command }) => {
-  await Promise.all([ensureBrandAssets(['web']), ensureDemoDocument()])
+export default defineConfig(async ({ command, mode }) => {
+  // `--mode cloud-portal` builds only the Cloud server's own pages (`cloud.html`), without the
+  // editor, its demo document, CanvasKit, or the PWA.
+  const cloudPortal = mode === 'cloud-portal'
+  // `--mode metrics` builds only the metrics dashboard (`metrics.html`) for the feedback Worker,
+  // which serves it under /admin behind Cloudflare Access.
+  const metrics = mode === 'metrics'
+  const standalone = cloudPortal || metrics
+  // `VITE_OPENPENCIL_CLOUD=off` builds the editor without OpenPencil Cloud.
+  const cloud = loadEnv(mode, __dirname, 'VITE_').VITE_OPENPENCIL_CLOUD !== 'off'
+  await Promise.all([ensureBrandAssets(['web']), standalone ? undefined : ensureDemoDocument()])
   return {
     resolve: {
-      alias: createOpenPencilAliases(__dirname)
+      alias: createOpenPencilAliases(__dirname, { cloud })
     },
     define: {
       __OPENPENCIL_APP_VERSION__: JSON.stringify(packageJson.version),
@@ -46,25 +55,36 @@ export default defineConfig(async ({ command }) => {
     optimizeDeps: { include: ['ai/test'] },
     plugins: [
       rawMarkdownPlugin(),
-      copyCanvasKitAssetsPlugin(),
       tailwindcss(),
       Icons({ compiler: 'vue3', customCollections: { ai: aiIconCollection() } }),
       Components({ resolvers: [IconsResolver({ prefix: 'icon', customCollections: ['ai'] })] }),
-      openPencilAutomationPlugin(command, host),
+      standalone ? undefined : openPencilAutomationPlugin(command, host),
       vue(),
-      openPencilPwaPlugin()
+      metrics
+        ? cloudPortalBrandPlugin((outDir) => resolve(outDir, '..'))
+        : cloudPortal
+          ? cloudPortalBrandPlugin()
+          : openPencilPwaPlugin()
     ],
     clearScreen: false,
+    publicDir: standalone ? false : 'public',
+    base: metrics ? '/admin/' : '/',
     build: {
       // Syntax is lowered to the supported browser baseline; APIs are not polyfilled.
       target: viteBuildTarget(),
       chunkSizeWarningLimit: 2500,
+      outDir: metrics ? 'dist-metrics/admin' : cloudPortal ? 'dist-cloud-portal' : 'dist',
       rolldownOptions: {
-        // The desktop Software Update window is its own page.
-        input: {
-          main: resolve(__dirname, 'index.html'),
-          updater: resolve(__dirname, 'updater.html')
-        }
+        // The desktop Software Update window is its own page; the Cloud portal and the metrics
+        // dashboard build alone.
+        input: metrics
+          ? { metrics: resolve(__dirname, 'metrics.html') }
+          : cloudPortal
+            ? { cloud: resolve(__dirname, 'cloud.html') }
+            : {
+                main: resolve(__dirname, 'index.html'),
+                updater: resolve(__dirname, 'updater.html')
+              }
       }
     },
     server: createDevServerOptions(host, __dirname)

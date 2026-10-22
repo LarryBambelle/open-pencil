@@ -1,10 +1,16 @@
 import { unzipSync, zipSync, type Unzipped, type Zippable } from 'fflate'
+import * as v from 'valibot'
 
 import type { FigPageManifestEntry } from '@open-pencil/kiwi/fig'
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
-import { buildFigKiwi, parseFigKiwiChunks } from '@open-pencil/kiwi/fig/container'
+import {
+  buildFigKiwi,
+  parseFigKiwiChunks,
+  type FigDataCompressor
+} from '@open-pencil/kiwi/fig/container'
 import { decodeFigKiwiCanvas, parseFigKiwiContainer } from '@open-pencil/kiwi/fig/parse'
 import type { HeaderFields } from '@open-pencil/kiwi/schema-runtime'
+import type { Color, Rect, Size } from '@open-pencil/scene-graph/primitives'
 
 import { hasPNGSignature } from './thumbnail'
 
@@ -20,6 +26,8 @@ export interface WriteFigArchiveInput {
   metaJSON: string
   images?: FigImageEntry[]
   figKiwiVersion?: number
+  /** Compresses the document data; Bun's zstd or deflate when omitted. */
+  compress?: FigDataCompressor
 }
 
 export interface FigParseResult {
@@ -163,9 +171,105 @@ export function readFigArchiveParts(buffer: ArrayBuffer): FigArchiveParts {
   }
 }
 
+/** What an archive's `meta.json` records about the file and its `thumbnail.png`. */
+export interface FigArchiveMeta {
+  fileName: string
+  /** The background of the page the thumbnail shows. */
+  backgroundColor: Color
+  /** The thumbnail's size in pixels. */
+  thumbnailSize: Size
+  /** The page-space rectangle the thumbnail shows. */
+  renderCoordinates: Rect
+  exportedAt: Date
+}
+
+/** The `meta.json` Figma's "Save local copy…" writes: these keys, and only these. */
+export const FigArchiveMetaSchema = v.strictObject({
+  client_meta: v.strictObject({
+    background_color: v.strictObject({
+      r: v.number(),
+      g: v.number(),
+      b: v.number(),
+      a: v.number()
+    }),
+    thumbnail_size: v.strictObject({ width: v.number(), height: v.number() }),
+    render_coordinates: v.strictObject({
+      x: v.number(),
+      y: v.number(),
+      width: v.number(),
+      height: v.number()
+    })
+  }),
+  file_name: v.string(),
+  developer_related_links: v.array(v.unknown()),
+  exported_at: v.pipe(v.string(), v.isoTimestamp())
+})
+
+export type FigArchiveMetaJSON = v.InferOutput<typeof FigArchiveMetaSchema>
+
+/**
+ * The `meta.json` Figma's "Save local copy…" writes, in its key order. Colour channels are
+ * rounded to the 32-bit floats the canvas records store, so they read as Figma's do.
+ */
+export function figArchiveMetaJSON(meta: FigArchiveMeta): string {
+  const { r, g, b, a } = meta.backgroundColor
+  const { x, y, width, height } = meta.renderCoordinates
+  const json: FigArchiveMetaJSON = {
+    client_meta: {
+      background_color: {
+        r: Math.fround(r),
+        g: Math.fround(g),
+        b: Math.fround(b),
+        a: Math.fround(a)
+      },
+      thumbnail_size: { width: meta.thumbnailSize.width, height: meta.thumbnailSize.height },
+      render_coordinates: { x, y, width, height }
+    },
+    file_name: meta.fileName,
+    developer_related_links: [],
+    exported_at: meta.exportedAt.toISOString()
+  }
+  return JSON.stringify(json)
+}
+
+/** Decode an archive's `meta.json`, failing on malformed JSON and on a shape Figma does not write. */
+export function readFigArchiveMeta(text: string) {
+  return v.safeParse(v.pipe(v.string(), v.parseJson(), FigArchiveMetaSchema), text)
+}
+
+/** Any `meta.json` object, its keys in the order they were written. */
+const StoredMetaSchema = v.pipe(v.string(), v.parseJson(), v.record(v.string(), v.unknown()))
+
+/**
+ * The archive with its `meta.json` recording `fileName`, every other entry's bytes and every
+ * other key of `meta.json` as they were; the archive itself when it already records that name.
+ * Null when its `meta.json` records no `file_name`, which only a full write can give it.
+ */
+export function renameFigArchive(bytes: Uint8Array, fileName: string): Uint8Array | null {
+  if (parseFigKiwiChunks(bytes)) return null
+  const stored = unzipSync(bytes, { filter: ({ name }) => name === 'meta.json' })
+  if (!Object.hasOwn(stored, 'meta.json')) return null
+  const meta = v.safeParse(StoredMetaSchema, new TextDecoder().decode(stored['meta.json']))
+  if (!meta.success || typeof meta.output.file_name !== 'string') return null
+  if (meta.output.file_name === fileName) return bytes
+  const renamed: Zippable = {}
+  for (const [name, data] of Object.entries(unzipSync(bytes))) {
+    renamed[name] =
+      name === 'meta.json'
+        ? new TextEncoder().encode(JSON.stringify({ ...meta.output, file_name: fileName }))
+        : [data, { level: 0 }]
+  }
+  return zipSync(renamed)
+}
+
 /** Assemble a complete zipped `.fig` archive from an encoded Kiwi message and resources. */
 export function writeFigArchive(input: WriteFigArchiveInput): Uint8Array {
-  const canvasData = buildFigKiwi(input.schemaDeflated, input.kiwiData, input.figKiwiVersion)
+  const canvasData = buildFigKiwi(
+    input.schemaDeflated,
+    input.kiwiData,
+    input.figKiwiVersion,
+    input.compress
+  )
   const entries: Zippable = {
     'canvas.fig': [canvasData, { level: 0 }],
     'thumbnail.png': [input.thumbnailPNG, { level: 0 }],
@@ -182,7 +286,8 @@ export function compressFigDataSync(
   thumbnailPNG: Uint8Array,
   metaJSON: string,
   imageEntries: FigImageEntry[],
-  figKiwiVersion?: number
+  figKiwiVersion?: number,
+  compress?: FigDataCompressor
 ): Uint8Array {
   return writeFigArchive({
     schemaDeflated,
@@ -190,6 +295,7 @@ export function compressFigDataSync(
     thumbnailPNG,
     metaJSON,
     images: imageEntries,
-    figKiwiVersion
+    figKiwiVersion,
+    compress
   })
 }

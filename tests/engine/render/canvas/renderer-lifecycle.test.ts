@@ -4,10 +4,12 @@ import type { Font, Paint, Surface } from 'canvaskit-wasm'
 
 import { createImageCache } from '#core/canvas/images/cache'
 import { ImagePreviewCache } from '#core/canvas/images/previews'
+import { NodePathCaches } from '#core/canvas/paths/cache'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { EffectRasterCache } from '#core/canvas/renderer/effect-raster-cache'
 import { destroyRenderer } from '#core/canvas/renderer/lifecycle'
 import { createDerivedGlyphPathCache, createGlyphSilhouetteCache } from '#core/canvas/text/derived'
+import { createEmojiImageCache } from '#core/canvas/text/emoji'
 import { TextPreparationCache } from '#core/canvas/text/preparation/cache'
 
 import { asDouble, asRenderer } from './helpers'
@@ -25,13 +27,10 @@ function createRenderer() {
     liveImages: new Map(),
     imagePreviews: new ImagePreviewCache(() => undefined),
     onImagePreviewReady: null,
-    vectorPathCache: new Map(),
-    vectorStrokePathCache: new Map(),
-    vectorStrokeOutlineCache: new Map(),
-    fillGeometryCache: new Map(),
-    strokeGeometryCache: new Map(),
+    nodePaths: new NodePathCaches(),
     glyphSilhouetteCache: createGlyphSilhouetteCache(),
     derivedGlyphPathCache: createDerivedGlyphPathCache(),
+    emojiImageCache: createEmojiImageCache(),
     fillPaint: deletable<Paint>(),
     strokePaint: deletable<Paint>(),
     selectionPaint: deletable<Paint>(),

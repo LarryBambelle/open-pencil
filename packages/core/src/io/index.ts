@@ -13,7 +13,13 @@ export {
   htmlFormat,
   tailwindJSXFormat
 } from './formats'
-export { exportFigFile, parseFigFile, readFigFile, type ParseFigFileOptions } from './formats/fig'
+export {
+  exportFigFile,
+  parseFigFile,
+  readFigFile,
+  type FigFileExtrasOptions,
+  type ParseFigFileOptions
+} from './formats/fig'
 export { parsePenFile, readPenFile } from '@open-pencil/pen'
 export {
   computeContentBounds,
@@ -32,7 +38,9 @@ export {
   prepareSVGImport,
   renderNodesToSVG,
   geometryBlobToSVGPath,
+  nodeOutlinePath,
   vectorNetworkToSVGPaths,
+  type OutlineNode,
   type SVGImportData,
   type SVGImportOptions
 } from './formats/svg'

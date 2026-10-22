@@ -17,8 +17,8 @@
         "label": "Open Recent"
       },
       {
-        "id": "open-storage-workspace",
-        "label": "Open Storage Workspace…"
+        "id": "browse-files",
+        "label": "Browse Files…"
       },
       {
         "id": "open-tour",
@@ -38,8 +38,19 @@
         "accelerator": "CmdOrCtrl+Shift+S"
       },
       {
-        "id": "save-to-storage",
-        "label": "Save to Storage…"
+        "id": "save-to",
+        "label": "Save To…"
+      },
+      {
+        "id": "save-version",
+        "label": "Save to Version History…",
+        "accelerator": "Alt+CmdOrCtrl+S",
+        "feature": "cloud-document"
+      },
+      {
+        "id": "version-history",
+        "label": "Show Version History",
+        "feature": "cloud-document"
       },
       {
         "type": "separator"
@@ -73,7 +84,8 @@
       {
         "id": "autosave",
         "label": "Autosave",
-        "checkbox": true
+        "checkbox": true,
+        "feature": "local-file"
       },
       {
         "id": "close",

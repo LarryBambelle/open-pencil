@@ -32,6 +32,11 @@ export const settingsMessageDefaults = {
   title: 'Settings',
   description: 'Manage integrations and app preferences.',
   general: 'General',
+  recentFiles: 'Recent files',
+  recentFilesDescription: 'Choose how many files to keep in the recent list and Open Recent menu.',
+  recentFilesLimit: 'Number of recent files',
+  recentFilesLimitCustom: 'Custom…',
+  recentFilesLimitRange: params('Enter a whole number from {min} to {max}.'),
   languageDescription: 'Choose the language used by the app interface.',
   editing: 'Editing',
   snappingDescription: 'Control alignment while editing paths, moving, and resizing layers.',
@@ -72,7 +77,8 @@ export const settingsMessageDefaults = {
   discardChangesDescription: 'Your unsaved changes will be lost.',
   keepEditing: 'Keep editing',
   discard: 'Discard',
-  storage: 'Cloud storage',
+  storage: 'Storage',
+  cloud: 'Cloud',
   mobilePanelNavigation: 'Mobile panel navigation',
   notifications: 'Notifications'
 } as const
