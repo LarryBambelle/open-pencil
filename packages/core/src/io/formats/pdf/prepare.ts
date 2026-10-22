@@ -1,6 +1,6 @@
 import { weightToStyle, type SceneGraph } from '@open-pencil/scene-graph'
 
-import { shapeText } from '#core/canvas/text/shape'
+import { withTextShaper } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
 import { populateAllFigPages } from '#core/io/formats/fig'
 import type { SVGTextLayout } from '#core/io/formats/svg'
@@ -49,12 +49,9 @@ export async function withPDFTextLayout<T>(
 ): Promise<T> {
   const ck = await getCanvasKit().catch(() => null)
   if (!ck) return render(undefined)
-  const reusable = fontManager.providerFor(ck)
-  const provider = reusable ?? ck.TypefaceFontProvider.Make()
-  if (!reusable) fontManager.attachProvider(ck, provider)
-  try {
-    return await render((node) => {
-      const shaped = shapeText(ck, provider, node)
+  return withTextShaper(ck, (shape) =>
+    render((node) => {
+      const shaped = shape(node)
       if (!shaped?.baselines.length) return null
       return shaped.baselines.map((line) => ({
         start: line.firstCharacter,
@@ -64,10 +61,5 @@ export async function withPDFTextLayout<T>(
         width: line.width
       }))
     })
-  } finally {
-    if (!reusable) {
-      fontManager.detachProvider(provider)
-      provider.delete()
-    }
-  }
+  )
 }

@@ -191,28 +191,34 @@ function needsShaping(graph: SceneGraph): boolean {
 }
 
 /**
- * Run a `.fig` or Figma clipboard write with text shaping. Unless the attached font provider
- * belongs to this CanvasKit, the loaded fonts are registered in one that lives for this write only.
+ * Run `use` with text shaped as the canvas lays it out. Unless the attached font provider belongs
+ * to this CanvasKit, the loaded fonts are registered in one that lives for this call only.
  */
-export async function withFigExportRuntime<T>(
-  graph: SceneGraph,
-  ck: CanvasKit | undefined,
-  write: (runtime: FigNodeChangeExportRuntime) => Promise<T>
+export async function withTextShaper<T>(
+  canvasKit: CanvasKit,
+  use: (shape: (node: SceneNode) => ShapedText | null) => Promise<T>
 ): Promise<T> {
-  if (!needsShaping(graph)) return write({ ...EMPTY_EXPORT_RUNTIME, textDecorations })
-  const canvasKit = ck ?? (await getCanvasKit())
   const reusable = fontManager.providerFor(canvasKit)
   const provider = reusable ?? canvasKit.TypefaceFontProvider.Make()
   if (!reusable) fontManager.attachProvider(canvasKit, provider)
   try {
-    return await write({
-      shapeText: (node) => shapeText(canvasKit, provider, node),
-      textDecorations
-    })
+    return await use((node) => shapeText(canvasKit, provider, node))
   } finally {
     if (!reusable) {
       fontManager.detachProvider(provider)
       provider.delete()
     }
   }
+}
+
+/** Run a `.fig` or Figma clipboard write with text shaping. */
+export async function withFigExportRuntime<T>(
+  graph: SceneGraph,
+  ck: CanvasKit | undefined,
+  write: (runtime: FigNodeChangeExportRuntime) => Promise<T>
+): Promise<T> {
+  if (!needsShaping(graph)) return write({ ...EMPTY_EXPORT_RUNTIME, textDecorations })
+  return withTextShaper(ck ?? (await getCanvasKit()), (shapeText) =>
+    write({ shapeText, textDecorations })
+  )
 }
