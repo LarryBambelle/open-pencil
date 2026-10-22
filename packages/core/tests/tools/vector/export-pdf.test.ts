@@ -2,9 +2,10 @@ import { describe, expect, test } from 'bun:test'
 
 import * as v from 'valibot'
 
-import { FigmaAPI } from '@open-pencil/core/figma-api'
-import { ALL_TOOLS } from '@open-pencil/core/tools'
 import { SceneGraph } from '@open-pencil/scene-graph'
+
+import { FigmaAPI } from '#core/figma-api'
+import { ALL_TOOLS } from '#core/tools'
 
 const exportPDF = ALL_TOOLS.find((tool) => tool.name === 'export_pdf')
 if (!exportPDF) throw new Error('export_pdf tool missing')
