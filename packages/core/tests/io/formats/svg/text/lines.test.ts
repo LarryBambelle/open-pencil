@@ -64,12 +64,13 @@ describe('SVG text with laid-out lines', () => {
     expect(svg).toContain('<tspan x="61.5" y="18">Centered</tspan>')
   })
 
-  test('a right-to-left line is anchored at its end', () => {
+  test('a right-to-left line starts at its left edge, with no direction or anchor', () => {
     const svg = exportText({ text: 'مرحبا', textDirection: 'RTL' }, [
       { start: 0, end: 5, x: 120, y: 18, width: 50 }
     ])
-    expect(svg).toContain('text-anchor="end"')
-    expect(svg).toContain('<tspan x="170" y="18">مرحبا</tspan>')
+    expect(svg).not.toContain('text-anchor')
+    expect(svg).not.toContain('direction')
+    expect(svg).toContain('<tspan x="120" y="18">مرحبا</tspan>')
   })
 
   test('with character edges every span is placed where its characters are drawn', () => {
@@ -93,7 +94,7 @@ describe('SVG text with laid-out lines', () => {
     )
   })
 
-  test('a right-to-left span is placed by the right edge of its characters', () => {
+  test('a right-to-left span starts at the left edge of its characters', () => {
     const svg = exportText(
       {
         text: 'אבג',
@@ -116,7 +117,7 @@ describe('SVG text with laid-out lines', () => {
       ]
     )
     expect(svg).toContain(
-      '<tspan x="100" y="18">א</tspan><tspan x="90" y="18" font-weight="700">בג</tspan>'
+      '<tspan x="90" y="18">א</tspan><tspan x="70" y="18" font-weight="700">בג</tspan>'
     )
   })
 })

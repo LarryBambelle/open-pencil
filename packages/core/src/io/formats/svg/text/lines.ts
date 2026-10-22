@@ -53,11 +53,6 @@ function textPieces(node: SceneNode): TextPiece[] {
   return pieces
 }
 
-const lineEdges = (line: SVGTextLine): SVGCharacterEdges => ({
-  left: line.x,
-  right: line.x + line.width
-})
-
 /** The left and right edges of the characters from `from` to `to` that have glyphs. */
 function spanEdges(line: SVGTextLine, from: number, to: number): SVGCharacterEdges | null {
   let left = Infinity
@@ -75,7 +70,6 @@ function lineSpans(
   text: string,
   pieces: readonly TextPiece[],
   line: SVGTextLine,
-  rtl: boolean,
   spanAttrs: SpanAttrs
 ): SVGNode[] {
   // The newline that ends a line is not drawn.
@@ -87,10 +81,11 @@ function lineSpans(
     const to = Math.min(piece.to, end)
     if (to <= from) continue
     const attrs = piece.style ? spanAttrs(piece.style) : {}
-    // Right-to-left text is anchored at its end, so a span is placed by its right edge. Without
-    // character edges the first span of a line places it, and the rest follow on from it.
-    const edges = spanEdges(line, from, to) ?? (spans.length === 0 ? lineEdges(line) : null)
-    const position = edges ? { x: round(rtl ? edges.right : edges.left), y } : {}
+    // Every span starts at its left edge, in either direction, since renderers disagree on
+    // which side `text-anchor` and `direction` place. Without character edges the first span of
+    // a line starts at the line's left edge, and the rest follow on from it.
+    const left = spanEdges(line, from, to)?.left ?? (spans.length === 0 ? line.x : null)
+    const position = left === null ? {} : { x: round(left), y }
     spans.push(svg('tspan', { ...position, ...attrs }, text.slice(from, to)))
   }
   return spans
@@ -103,9 +98,8 @@ function lineSpans(
 export function laidOutTextSpans(
   node: SceneNode,
   lines: readonly SVGTextLine[],
-  rtl: boolean,
   spanAttrs: SpanAttrs
 ): SVGNode[] {
   const pieces = textPieces(node)
-  return lines.flatMap((line) => lineSpans(node.text, pieces, line, rtl, spanAttrs))
+  return lines.flatMap((line) => lineSpans(node.text, pieces, line, spanAttrs))
 }

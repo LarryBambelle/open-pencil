@@ -77,9 +77,6 @@ export function renderTextNode(
   const direction = resolveNodeTextDirection(node)
   const lines = textLayout ? textLayout(node) : null
   const laidOut = lines && lines.length > 0 ? lines : null
-  // Laid-out lines carry their own x, so each is anchored at its start (its end when RTL).
-  let textAnchor = textAnchorForNode(node, direction)
-  if (laidOut) textAnchor = direction === 'RTL' ? 'end' : undefined
 
   let textDecoration: 'underline' | 'line-through' | undefined
   if (node.textDecoration === 'UNDERLINE') textDecoration = 'underline'
@@ -91,8 +88,9 @@ export function renderTextNode(
     'font-weight': node.fontWeight !== 400 ? node.fontWeight : undefined,
     'font-style': node.italic ? 'italic' : undefined,
     fill: fillAttr ?? undefined,
-    direction: direction === 'RTL' ? 'rtl' : undefined,
-    'text-anchor': textAnchor,
+    // Laid-out spans each start at their own left edge, so they take no direction or anchor.
+    direction: direction === 'RTL' && !laidOut ? 'rtl' : undefined,
+    'text-anchor': laidOut ? undefined : textAnchorForNode(node, direction),
     'text-decoration': textDecoration,
     'letter-spacing': node.letterSpacing ? round(node.letterSpacing) : undefined,
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node), fontAlias) : {})
@@ -107,7 +105,7 @@ export function renderTextNode(
     return svg(
       'text',
       { ...attrs, 'xml:space': 'preserve' },
-      ...laidOutTextSpans(node, laidOut, direction === 'RTL', spanAttrs)
+      ...laidOutTextSpans(node, laidOut, spanAttrs)
     )
   }
 
