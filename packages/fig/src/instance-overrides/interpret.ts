@@ -251,7 +251,7 @@ function interpretRoot(
     )
     if (Object.keys(retained).length === 0) return
     completeClearedStyleClaim(target, retained, sources.get(target.sourceId))
-    declareVariableBindingUnits(target, retained as NodeChange)
+    declareVariableBindingUnits(target, retained)
     invalidateInheritedTextData(target.properties, retained)
     Object.assign(
       target.properties,
