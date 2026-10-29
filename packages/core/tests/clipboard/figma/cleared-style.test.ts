@@ -7,7 +7,8 @@ import { FIXTURES } from '#core-tests/helpers/paths'
 import { importClipboardNodes } from '@open-pencil/core/clipboard'
 import { parseFigmaClipboard } from '@open-pencil/fig/clipboard'
 import { symbolOverridesOf } from '@open-pencil/fig/instance-overrides'
-import { initCodec, type NodeChange } from '@open-pencil/kiwi/fig/codec'
+import { initCodec, type NodeChange, type StyleReference } from '@open-pencil/kiwi/fig/codec'
+import { isUnsetGuid } from '@open-pencil/kiwi/fig/guid'
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 
 /**
@@ -50,15 +51,20 @@ const CASES: Case[] = [
   }
 ]
 
+function isClearedReference(value: unknown): boolean {
+  const guid = (value as StyleReference | undefined)?.guid
+  return guid !== undefined && isUnsetGuid(guid)
+}
+
 /** Outer's layer after import; `valuesKept: false` leaves the clearing claim only its reference. */
 async function outerLayer(entry: Case, valuesKept: boolean) {
   const parsed = expectDefined(
     await parseFigmaClipboard(await Bun.file(join(FIXTURES, entry.fixture)).text())
   )
-  // Outer's clear is the fixture's one override that names the style.
+  // Only Outer's clearing claim: Middle's own claim names the style it applies.
   if (!valuesKept)
     for (const override of parsed.nodes.flatMap(symbolOverridesOf))
-      if (entry.reference in override)
+      if (isClearedReference(override[entry.reference]))
         for (const field of Object.keys(override))
           if (field !== 'guidPath' && field !== entry.reference)
             Reflect.deleteProperty(override, field)
