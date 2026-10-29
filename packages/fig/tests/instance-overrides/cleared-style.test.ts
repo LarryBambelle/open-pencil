@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { guid } from '#fig-tests/helpers/guid'
-import { CLEARED_STYLE, type STYLE_GOVERNED_FIELDS } from '#fig/instance-overrides/fields'
+import { CLEARED_STYLE } from '#fig/instance-overrides/fields'
 import { interpretInstance } from '#fig/instance-overrides/interpret'
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
@@ -11,10 +11,18 @@ const solid = (r: number, g: number, b: number): NodeChange['fillPaints'] => [
 ]
 const STYLE = { guid: guid(9) }
 
+/** A record's fields, with the raw letter spacing Figma keeps beside the modeled one. */
+type Fields = Partial<NodeChange> & { textTracking?: number }
+
 interface Kind {
-  reference: keyof typeof STYLE_GOVERNED_FIELDS
-  source: Partial<NodeChange>
-  middle: Partial<NodeChange>
+  reference:
+    | 'styleIdForFill'
+    | 'styleIdForStrokeFill'
+    | 'styleIdForEffect'
+    | 'styleIdForGrid'
+    | 'styleIdForText'
+  source: Fields
+  middle: Fields
 }
 
 /**
@@ -60,11 +68,7 @@ const KINDS: Kind[] = [
 ]
 
 /** Inner's layer, Middle's instance of Inner overriding it, and Outer's instance of Middle. */
-function nested(
-  source: Partial<NodeChange>,
-  middle: Partial<NodeChange>,
-  outer?: Partial<NodeChange>
-): NodeChange[] {
+function nested(source: Fields, middle: Fields, outer?: Fields): NodeChange[] {
   return [
     { guid: guid(1), type: 'SYMBOL', name: 'Inner' },
     { guid: guid(2), type: 'TEXT', parentIndex: { guid: guid(1), position: '!' }, ...source },

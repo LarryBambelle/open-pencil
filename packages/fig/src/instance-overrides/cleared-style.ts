@@ -1,19 +1,38 @@
-import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
-import { isUnsetGuid } from '@open-pencil/kiwi/fig/guid'
+import { uniq } from 'es-toolkit'
 
-import { OVERRIDE_FIELDS, type RawOverrideField, STYLE_GOVERNED_FIELDS } from './fields'
+import type { NodeChange, StyleReference } from '@open-pencil/kiwi/fig/codec'
+import { isUnsetGuid } from '@open-pencil/kiwi/fig/guid'
+import { SHARED_STYLE_FIELDS, sharedStyleRefKey } from '@open-pencil/scene-graph/shared-styles'
+
+import { ownFigmaRawFields } from '../source-metadata'
+import { OVERRIDE_FIELDS, SCENE_OVERRIDE_FIELDS } from './fields'
 import type { InstanceOccurrence } from './occurrence/types'
 
-function isOverrideField(field: PropertyKey): field is RawOverrideField {
-  return field in OVERRIDE_FIELDS
+/**
+ * Each style's raw reference with the raw fields of the scene fields it gives: those a claim
+ * names, and those the record keeps beside them, such as `textTracking` beside `letterSpacing`.
+ */
+const STYLE_CLAIM_FIELDS = Object.entries(SHARED_STYLE_FIELDS).map(([kind, sceneFields]) => ({
+  reference: ownFigmaRawFields([sharedStyleRefKey(kind as keyof typeof SHARED_STYLE_FIELDS)])[0],
+  governed: uniq([
+    ...sceneFields.flatMap(
+      (field) => SCENE_OVERRIDE_FIELDS.get(field)?.map(({ raw }) => raw) ?? []
+    ),
+    ...ownFigmaRawFields(sceneFields)
+  ])
+}))
+
+function isCleared(reference: unknown): boolean {
+  const guid = (reference as StyleReference | undefined)?.guid
+  return guid !== undefined && isUnsetGuid(guid)
 }
 
 /** The value the source record gives a field, or Figma's default when the record leaves it out. */
-function sourceValue(source: NodeChange | undefined, field: keyof NodeChange): unknown {
-  if (source?.[field] !== undefined) return source[field]
-  if (!isOverrideField(field)) return undefined
-  const spec = OVERRIDE_FIELDS[field]
-  return 'absent' in spec ? spec.absent : undefined
+function sourceValue(source: NodeChange | undefined, field: string): unknown {
+  const own: unknown = source ? Reflect.get(source, field) : undefined
+  if (own !== undefined || !(field in OVERRIDE_FIELDS)) return own
+  const spec: { absent?: unknown } = Reflect.get(OVERRIDE_FIELDS, field)
+  return spec.absent
 }
 
 /**
@@ -27,14 +46,13 @@ export function completeClearedStyleClaim(
   claim: Partial<NodeChange>,
   source: NodeChange | undefined
 ): void {
-  for (const [reference, governed] of Object.entries(STYLE_GOVERNED_FIELDS)) {
-    const guid = claim[reference as keyof typeof STYLE_GOVERNED_FIELDS]?.guid
-    if (!guid || !isUnsetGuid(guid)) continue
+  for (const { reference, governed } of STYLE_CLAIM_FIELDS) {
+    if (!isCleared(Reflect.get(claim, reference))) continue
     for (const field of governed) {
       if (field in claim) continue
       const value = sourceValue(source, field)
       if (value === undefined) Reflect.deleteProperty(target.properties, field)
-      else Object.assign(claim, { [field]: structuredClone(value) })
+      else Reflect.set(claim, field, structuredClone(value))
     }
   }
 }

@@ -33,7 +33,14 @@ export const SHARED_TEXT_STYLE_FIELDS = [
   'fontFeatures'
 ] as const satisfies readonly (keyof SceneNode)[]
 
-const TEXT_STYLE_KEYS = new Set<keyof SceneNode>(SHARED_TEXT_STYLE_FIELDS)
+/** The fields each kind of shared style gives what uses it; changing one leaves the style. */
+export const SHARED_STYLE_FIELDS = {
+  fill: ['fills'],
+  stroke: ['strokes'],
+  text: SHARED_TEXT_STYLE_FIELDS,
+  effect: ['effects'],
+  grid: ['layoutGrids']
+} as const satisfies Record<SharedStyleKind, readonly (keyof SceneNode)[]>
 
 export function sharedStyleRefKey(kind: SharedStyleKind): (typeof STYLE_REF_KEYS)[SharedStyleKind] {
   return STYLE_REF_KEYS[kind]
@@ -58,23 +65,10 @@ export function styleDetachmentChanges(
   changes: Partial<SceneNode>
 ): Partial<SceneNode> {
   const next = { ...changes }
-  if ('fills' in changes && !('fillStyleId' in changes) && node.fillStyleId) {
-    next.fillStyleId = null
-  }
-  if ('strokes' in changes && !('strokeStyleId' in changes) && node.strokeStyleId) {
-    next.strokeStyleId = null
-  }
-  if ('effects' in changes && !('effectStyleId' in changes) && node.effectStyleId) {
-    next.effectStyleId = null
-  }
-  if ('layoutGrids' in changes && !('gridStyleId' in changes) && node.gridStyleId) {
-    next.gridStyleId = null
-  }
-  const changesTextStyle = (Object.keys(changes) as (keyof SceneNode)[]).some((key) =>
-    TEXT_STYLE_KEYS.has(key)
-  )
-  if (changesTextStyle && !('textStyleId' in changes) && node.textStyleId) {
-    next.textStyleId = null
+  for (const [kind, fields] of Object.entries(SHARED_STYLE_FIELDS)) {
+    const reference = STYLE_REF_KEYS[kind as SharedStyleKind]
+    if (reference in changes || !node[reference]) continue
+    if (fields.some((field) => field in changes)) next[reference] = null
   }
   return next
 }

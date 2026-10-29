@@ -1,6 +1,5 @@
 import { groupBy } from 'es-toolkit'
 
-import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { UNSET_GUID } from '@open-pencil/kiwi/fig/guid'
 import type { SceneNode } from '@open-pencil/scene-graph'
 
@@ -125,31 +124,6 @@ export const OVERRIDE_FIELDS = {
 } as const satisfies Record<string, OverrideField>
 
 export type RawOverrideField = keyof typeof OVERRIDE_FIELDS
-
-/**
- * The fields each style reference governs, which Figma claims together with it. An instance
- * that clears the style and leaves one of them out shows the source layer's value for it
- * (live-verified for every kind, desktop 126).
- */
-export const STYLE_GOVERNED_FIELDS = {
-  styleIdForFill: ['fillPaints'],
-  styleIdForStrokeFill: ['strokePaints'],
-  styleIdForEffect: ['effects'],
-  styleIdForGrid: ['layoutGrids'],
-  styleIdForText: [
-    'fontName',
-    'fontSize',
-    'lineHeight',
-    'letterSpacing',
-    'textTracking',
-    'textCase',
-    'fontVariations',
-    'fontVersion',
-    'fontVariantCommonLigatures',
-    'fontVariantContextualLigatures',
-    'textDecorationSkipInk'
-  ]
-} as const satisfies Partial<Record<keyof NodeChange, readonly (keyof NodeChange)[]>>
 
 type RawFieldOfKind<K extends OverrideField['kind']> = {
   [R in RawOverrideField]: (typeof OVERRIDE_FIELDS)[R]['kind'] extends K ? R : never

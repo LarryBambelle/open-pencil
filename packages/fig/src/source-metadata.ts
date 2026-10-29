@@ -106,6 +106,16 @@ export function staleFigmaRawFields(editedFields: readonly string[] = []): Reado
   return new Set(editedFields.flatMap((key) => EDITED_RAW_FIELDS[key] ?? []))
 }
 
+const DERIVED_RAW_FIELDS = new Set<string>([
+  ...TEXT_DERIVED_RAW_FIELDS,
+  ...STROKE_GEOMETRY_RAW_FIELDS
+])
+
+/** The raw fields that hold scene fields' own values, without the derived data they make stale. */
+export function ownFigmaRawFields(sceneFields: readonly string[]): string[] {
+  return [...staleFigmaRawFields(sceneFields)].filter((field) => !DERIVED_RAW_FIELDS.has(field))
+}
+
 export function effectiveFigmaRawNodeFields(node: FigmaSourceCarrier): Record<string, unknown> {
   const staleFields = staleFigmaRawFields(node.source.editedFields ?? [])
   if (staleFields.size === 0) return node.source.fig.rawNodeFields

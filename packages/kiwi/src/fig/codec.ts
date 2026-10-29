@@ -385,7 +385,6 @@ export interface NodeChange {
   emojiImageSet?: string
   lineHeight?: { value: number; units: string }
   letterSpacing?: { value: number; units: string }
-  textTracking?: number
   paragraphSpacing?: number
   paragraphIndent?: number
   listSpacing?: number
