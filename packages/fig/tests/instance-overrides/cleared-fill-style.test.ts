@@ -68,11 +68,11 @@ test('a clearing claim that carries its own paints keeps them', () => {
   expect(textOf(calendar({ styleIdForFill: CLEARED, fillPaints: red })).fillPaints).toEqual(red)
 })
 
-test('the source layer keeps its own fill style when the outer instance clears the other one', () => {
+test("the source layer's own fill style stays cleared, and its fill shows", () => {
   const style = { guid: guid(9) }
   const changes = calendar({ styleIdForFill: CLEARED })
   Object.assign(changes[1], { styleIdForFill: style })
   const text = textOf(changes)
   expect(text.fillPaints).toEqual(DARK)
-  expect(text.styleIdForFill).toEqual(style)
+  expect(text.styleIdForFill).toBeUndefined()
 })

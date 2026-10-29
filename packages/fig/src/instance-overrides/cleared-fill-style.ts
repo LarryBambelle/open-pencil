@@ -9,10 +9,10 @@ function isClearedStyleReference(reference: NodeChange['styleIdForFill']): boole
 
 /**
  * An outer instance that clears a fill style an intermediate component applied to a nested layer
- * claims the unset style reference and writes no `fillPaints`: the layer shows the fill of the
- * component it comes from again. The claim is rewritten to carry that record's own fill (and
- * style), so the intermediate component's fill does not stay on the layer. A claim that carries
- * `fillPaints` of its own keeps them.
+ * claims the unset style reference and writes no `fillPaints`: Figma draws the fill of the
+ * component the layer comes from again, with no style, even when that layer has one of its own.
+ * The claim is rewritten to carry that record's own fill, so the intermediate component's fill
+ * does not stay on the layer. A claim that carries `fillPaints` of its own keeps them.
  */
 export function revertClearedFillStyle(
   target: InstanceOccurrence,
@@ -23,6 +23,4 @@ export function revertClearedFillStyle(
   delete claim.styleIdForFill
   delete target.properties.styleIdForFill
   if (source?.fillPaints) claim.fillPaints = structuredClone(source.fillPaints)
-  if (source?.styleIdForFill)
-    target.properties.styleIdForFill = structuredClone(source.styleIdForFill)
 }
