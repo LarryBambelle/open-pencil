@@ -33,11 +33,21 @@ export const SHARED_TEXT_STYLE_FIELDS = [
   'fontFeatures'
 ] as const satisfies readonly (keyof SceneNode)[]
 
+/**
+ * The paragraph fields a text style also gives the whole text; a range takes only the character
+ * ones. Changing one leaves the style, and a cleared style resets them (live-verified).
+ */
+const TEXT_STYLE_PARAGRAPH_FIELDS = [
+  'paragraphSpacing',
+  'paragraphIndent',
+  'listSpacing'
+] as const satisfies readonly (keyof SceneNode)[]
+
 /** The fields each kind of shared style gives what uses it; changing one leaves the style. */
 export const SHARED_STYLE_FIELDS = {
   fill: ['fills'],
   stroke: ['strokes'],
-  text: SHARED_TEXT_STYLE_FIELDS,
+  text: [...SHARED_TEXT_STYLE_FIELDS, ...TEXT_STYLE_PARAGRAPH_FIELDS],
   effect: ['effects'],
   grid: ['layoutGrids']
 } as const satisfies Record<SharedStyleKind, readonly (keyof SceneNode)[]>

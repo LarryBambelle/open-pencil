@@ -125,6 +125,18 @@ test('without the clear the intermediate component applies', () => {
   expect(layer).toMatchObject(fill.middle)
 })
 
+test("a cleared text style resets the text's paragraph and list spacing too", () => {
+  const source: Fields = { paragraphSpacing: 0, paragraphIndent: 0, listSpacing: 0 }
+  const middle: Fields = {
+    styleIdForText: STYLE,
+    paragraphSpacing: 24,
+    paragraphIndent: 10,
+    listSpacing: 8
+  }
+  const layer = layerOf(nested(source, middle, { styleIdForText: CLEARED_STYLE }))
+  expect(layer).toMatchObject(source)
+})
+
 test("a governed field the source layer leaves out takes Figma's default, or goes away", () => {
   const middle: Partial<NodeChange> = {
     styleIdForText: STYLE,
