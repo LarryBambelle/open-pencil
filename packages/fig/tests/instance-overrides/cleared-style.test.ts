@@ -1,26 +1,24 @@
 import { describe, expect, test } from 'bun:test'
 
 import { guid } from '#fig-tests/helpers/guid'
-import { CLEARED_STYLE } from '#fig/instance-overrides/fields'
+import { STYLE_GOVERNED_FIELDS } from '#fig/instance-overrides/cleared-style'
+import { CLEARED_STYLE, SCENE_OVERRIDE_FIELDS } from '#fig/instance-overrides/fields'
 import { interpretInstance } from '#fig/instance-overrides/interpret'
+import { staleFigmaRawFields } from '#fig/source-metadata'
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
+import type { SceneNode, SharedStyleKind } from '@open-pencil/scene-graph'
+import { SHARED_STYLE_FIELDS, sharedStyleRefKey } from '@open-pencil/scene-graph/shared-styles'
 
 const solid = (r: number, g: number, b: number): NodeChange['fillPaints'] => [
   { type: 'SOLID', color: { r, g, b, a: 1 }, opacity: 1, visible: true }
 ]
 const STYLE = { guid: guid(9) }
 
-/** A record's fields, with the raw letter spacing Figma keeps beside the modeled one. */
-type Fields = Partial<NodeChange> & { textTracking?: number }
+type Fields = Partial<NodeChange>
 
 interface Kind {
-  reference:
-    | 'styleIdForFill'
-    | 'styleIdForStrokeFill'
-    | 'styleIdForEffect'
-    | 'styleIdForGrid'
-    | 'styleIdForText'
+  reference: keyof typeof STYLE_GOVERNED_FIELDS
   source: Fields
   middle: Fields
 }
@@ -147,3 +145,27 @@ test("a governed field the source layer leaves out takes Figma's default, or goe
   expect(layer.textCase).toBe('ORIGINAL')
   expect(layer).not.toHaveProperty('textTracking')
 })
+
+/** The raw fields a scene field is claimed as or saved in. */
+const rawFieldsOf = (field: keyof SceneNode) => [
+  ...(SCENE_OVERRIDE_FIELDS.get(field)?.map(({ raw }) => raw) ?? []),
+  ...staleFigmaRawFields([field])
+]
+
+describe.each(Object.entries(SHARED_STYLE_FIELDS))(
+  'the raw fields of a %s style',
+  (kind, fields) => {
+    const [reference] = staleFigmaRawFields([sharedStyleRefKey(kind as SharedStyleKind)])
+    const governed: readonly string[] = STYLE_GOVERNED_FIELDS[reference as Kind['reference']]
+
+    test('hold each field the style gives', () => {
+      for (const field of fields)
+        expect(rawFieldsOf(field).some((raw) => governed.includes(raw))).toBe(true)
+    })
+
+    test('hold nothing else', () => {
+      const raw = new Set(fields.flatMap(rawFieldsOf))
+      expect(governed.filter((field) => !raw.has(field))).toEqual([])
+    })
+  }
+)

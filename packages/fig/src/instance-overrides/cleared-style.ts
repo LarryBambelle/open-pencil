@@ -1,38 +1,49 @@
-import { uniq } from 'es-toolkit'
-
 import type { NodeChange, StyleReference } from '@open-pencil/kiwi/fig/codec'
 import { isUnsetGuid } from '@open-pencil/kiwi/fig/guid'
-import { SHARED_STYLE_FIELDS, sharedStyleRefKey } from '@open-pencil/scene-graph/shared-styles'
 
-import { ownFigmaRawFields } from '../source-metadata'
-import { OVERRIDE_FIELDS, SCENE_OVERRIDE_FIELDS } from './fields'
+import type { STYLE_REFERENCE_FIELDS } from '../document/style-dependencies'
+import { OVERRIDE_FIELDS } from './fields'
 import type { InstanceOccurrence } from './occurrence/types'
 
-/**
- * Each style's raw reference with the raw fields of the scene fields it gives: those a claim
- * names, and those the record keeps beside them, such as `textTracking` beside `letterSpacing`.
- */
-const STYLE_CLAIM_FIELDS = Object.entries(SHARED_STYLE_FIELDS).map(([kind, sceneFields]) => ({
-  reference: ownFigmaRawFields([sharedStyleRefKey(kind as keyof typeof SHARED_STYLE_FIELDS)])[0],
-  governed: uniq([
-    ...sceneFields.flatMap(
-      (field) => SCENE_OVERRIDE_FIELDS.get(field)?.map(({ raw }) => raw) ?? []
-    ),
-    ...ownFigmaRawFields(sceneFields)
-  ])
-}))
+/** The raw fields each style reference gives the layer, with those the record keeps beside them. */
+export const STYLE_GOVERNED_FIELDS = {
+  styleIdForFill: ['fillPaints', 'backgroundPaints', 'backgroundColor'],
+  styleIdForStrokeFill: ['strokePaints'],
+  styleIdForText: [
+    'fontName',
+    'fontVersion',
+    'fontSize',
+    'semanticWeight',
+    'semanticItalic',
+    'lineHeight',
+    'letterSpacing',
+    'textTracking',
+    'textDecoration',
+    'textCase',
+    'fontVariantCommonLigatures',
+    'fontVariantContextualLigatures',
+    'toggledOnOTFeatures',
+    'toggledOffOTFeatures',
+    'paragraphSpacing',
+    'paragraphIndent',
+    'listSpacing'
+  ],
+  styleIdForEffect: ['effects'],
+  styleIdForGrid: ['layoutGrids']
+} as const satisfies Record<(typeof STYLE_REFERENCE_FIELDS)[number], readonly string[]>
 
-function isCleared(reference: unknown): boolean {
-  const guid = (reference as StyleReference | undefined)?.guid
-  return guid !== undefined && isUnsetGuid(guid)
+type StyleReferenceField = keyof typeof STYLE_GOVERNED_FIELDS
+
+function isCleared(reference: StyleReference | undefined): boolean {
+  return reference?.guid !== undefined && isUnsetGuid(reference.guid)
 }
 
 /** The value the source record gives a field, or Figma's default when the record leaves it out. */
 function sourceValue(source: NodeChange | undefined, field: string): unknown {
-  const own: unknown = source ? Reflect.get(source, field) : undefined
+  const own = source?.[field]
   if (own !== undefined || !(field in OVERRIDE_FIELDS)) return own
-  const spec: { absent?: unknown } = Reflect.get(OVERRIDE_FIELDS, field)
-  return spec.absent
+  const spec = OVERRIDE_FIELDS[field as keyof typeof OVERRIDE_FIELDS]
+  return 'absent' in spec ? spec.absent : undefined
 }
 
 /**
@@ -46,13 +57,14 @@ export function completeClearedStyleClaim(
   claim: Partial<NodeChange>,
   source: NodeChange | undefined
 ): void {
-  for (const { reference, governed } of STYLE_CLAIM_FIELDS) {
-    if (!isCleared(Reflect.get(claim, reference))) continue
+  for (const reference of Object.keys(STYLE_GOVERNED_FIELDS) as StyleReferenceField[]) {
+    if (!isCleared(claim[reference])) continue
+    const governed: readonly string[] = STYLE_GOVERNED_FIELDS[reference]
     for (const field of governed) {
       if (field in claim) continue
       const value = sourceValue(source, field)
       if (value === undefined) Reflect.deleteProperty(target.properties, field)
-      else Reflect.set(claim, field, structuredClone(value))
+      else claim[field] = structuredClone(value)
     }
   }
 }
