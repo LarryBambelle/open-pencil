@@ -147,6 +147,16 @@ test("a governed field the source layer leaves out takes Figma's default, or goe
 })
 
 /** The raw fields a scene field is claimed as or saved in. */
+/** Layout and geometry Figma derives from the fields, which a cleared style leaves to be derived. */
+const DERIVED_RAW_FIELDS = new Set([
+  'textData',
+  'derivedTextData',
+  'textUserLayoutVersion',
+  'textExplicitLayoutVersion',
+  'strokeGeometry',
+  'vectorData'
+])
+
 const rawFieldsOf = (field: keyof SceneNode) => [
   ...(SCENE_OVERRIDE_FIELDS.get(field)?.map(({ raw }) => raw) ?? []),
   ...staleFigmaRawFields([field])
@@ -158,9 +168,9 @@ describe.each(Object.entries(SHARED_STYLE_FIELDS))(
     const [reference] = staleFigmaRawFields([sharedStyleRefKey(kind as SharedStyleKind)])
     const governed: readonly string[] = STYLE_GOVERNED_FIELDS[reference as Kind['reference']]
 
-    test('hold each field the style gives', () => {
-      for (const field of fields)
-        expect(rawFieldsOf(field).some((raw) => governed.includes(raw))).toBe(true)
+    test('hold every raw field of each field the style gives, but derived data', () => {
+      const own = fields.flatMap(rawFieldsOf).filter((raw) => !DERIVED_RAW_FIELDS.has(raw))
+      expect(own.filter((raw) => !governed.includes(raw))).toEqual([])
     })
 
     test('hold nothing else', () => {
