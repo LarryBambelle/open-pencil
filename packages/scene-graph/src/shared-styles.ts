@@ -1,5 +1,11 @@
 import type { SceneGraph } from './graph'
-import type { SceneNode, SharedStyle, SharedStyleKind, SharedStyleType } from './types'
+import type {
+  CharacterStyleOverride,
+  SceneNode,
+  SharedStyle,
+  SharedStyleKind,
+  SharedStyleType
+} from './types'
 
 const STYLE_REF_KEYS = {
   fill: 'fillStyleId',
@@ -25,6 +31,7 @@ export const SHARED_TEXT_STYLE_FIELDS = [
   'fontFamily',
   'fontWeight',
   'italic',
+  'fontStyle',
   'fontSize',
   'lineHeight',
   'letterSpacing',
@@ -51,6 +58,25 @@ export const SHARED_STYLE_FIELDS = {
   effect: ['effects'],
   grid: ['layoutGrids']
 } as const satisfies Record<SharedStyleKind, readonly (keyof SceneNode)[]>
+
+/** The fields that pick a text's face, which its style name names. */
+export const FACE_KEYS = [
+  'fontFamily',
+  'fontWeight',
+  'italic'
+] as const satisfies readonly (keyof SceneNode)[]
+
+/**
+ * The face name of characters with `style` over the text: their own, none where they set another
+ * face without one (as ranges from HTML or `.pen` do), else the text's.
+ */
+export function rangeFontStyle(
+  node: Pick<SceneNode, 'fontStyle'>,
+  style: CharacterStyleOverride
+): string | null {
+  if (style.fontStyle !== undefined) return style.fontStyle
+  return FACE_KEYS.some((key) => style[key] !== undefined) ? null : node.fontStyle
+}
 
 export function sharedStyleRefKey(kind: SharedStyleKind): (typeof STYLE_REF_KEYS)[SharedStyleKind] {
   return STYLE_REF_KEYS[kind]
@@ -79,6 +105,11 @@ export function styleDetachmentChanges(
     const reference = STYLE_REF_KEYS[kind as SharedStyleKind]
     if (reference in changes || !node[reference]) continue
     if (fields.some((field) => field in changes)) next[reference] = null
+  }
+  // A face named for another family, weight, or slant names none; the new one takes its own name.
+  const changesFace = FACE_KEYS.some((key) => key in changes && changes[key] !== node[key])
+  if (changesFace && !('fontStyle' in changes) && node.fontStyle) {
+    next.fontStyle = null
   }
   return next
 }
